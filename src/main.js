@@ -394,6 +394,10 @@ function shellTemplate() {
             <div class="brand-icon">P</div>
             PasarKita
           </a>
+          <div class="nav-search" role="search">
+            <input id="global-search-input" type="search" placeholder="Cari produk UMKM di PasarKita">
+            <button type="button" data-global-search>Cari</button>
+          </div>
           <div class="nav-links" id="nav-links"></div>
         </div>
       </nav>
@@ -403,64 +407,65 @@ function shellTemplate() {
           <section class="landing-hero">
             <div class="landing-copy">
               <span class="category-badge">Marketplace UMKM Microservice</span>
-              <h1>Platform belanja UMKM dengan alur produk, checkout, seller center, dan monitoring operasional.</h1>
+              <h1>Marketplace UMKM yang terhubung dengan POS toko dan pengiriman LogistiKita.</h1>
               <p>
-                PasarKita mensimulasikan marketplace end-to-end untuk demo frontend.
-                Pembeli dapat belanja dan checkout, penjual mengelola katalog toko, dan admin
-                memantau performa operasional dari satu dashboard role-based.
+                PasarKita menjadi kanal jual beli online dalam ekosistem microservice.
+                Marketplace fokus pada katalog, cart, checkout request, dan status order,
+                sementara POS menangani transaksi toko fisik dan LogistiKita menangani pengiriman setelah pembayaran berhasil.
               </p>
               <div class="landing-actions">
+                <button class="btn btn-primary" type="button" data-page="product-list">Lihat Produk</button>
                 <button class="btn btn-primary" type="button" data-page="login">Login</button>
                 <button class="btn btn-secondary" type="button" data-page="register">Register</button>
               </div>
               <div class="landing-tags" aria-label="Ruang lingkup sistem">
-                <span>Katalog UMKM</span>
-                <span>Checkout Request</span>
-                <span>Order Timeline</span>
-                <span>Seller Center</span>
-                <span>Dashboard Admin</span>
+                <span>Katalog Marketplace</span>
+                <span>POS Terhubung</span>
+                <span>LogistiKita Delivery</span>
+                <span>Fee Marketplace 2%</span>
+                <span>API Gateway</span>
               </div>
             </div>
             <div class="ecosystem-panel">
               <div class="ecosystem-head">
-                <h3>Peta Integrasi Sistem</h3>
-                <p>Frontend bertindak sebagai orchestrator alur user ke layanan backend.</p>
+                <h3>Peta Ekosistem</h3>
+                <p>Frontend marketplace menampilkan alur user, tetapi transaksi lintas layanan tetap lewat kontrak API.</p>
               </div>
               <div class="flow-grid">
-                <div class="flow-node active">Web Frontend</div>
-                <div class="flow-node">Marketplace API</div>
+                <div class="flow-node active">PasarKita Marketplace</div>
+                <div class="flow-node">WarungPOS</div>
                 <div class="flow-node">API Gateway</div>
                 <div class="flow-node">SmartBank</div>
                 <div class="flow-node">LogistiKita</div>
               </div>
               <ul class="ecosystem-points">
-                <li>Checkout hanya membuat request pembayaran ke backend.</li>
-                <li>Frontend tidak memproses mutasi saldo secara langsung.</li>
-                <li>Status order disimulasikan untuk kebutuhan demo UI/UX.</li>
+                <li>Marketplace membuat order dan checkout request, bukan mutasi saldo.</li>
+                <li>POS menjadi kanal transaksi offline yang tetap masuk ke ekosistem pembayaran.</li>
+                <li>LogistiKita menerima request pengiriman setelah status pembayaran berhasil.</li>
               </ul>
             </div>
           </section>
 
           <section class="platform-snapshot" aria-label="Ringkasan sistem">
             <article class="snapshot-card">
-              <span>Role Aplikasi</span>
-              <strong>3 Role</strong>
-              <p>Pembeli, penjual, dan admin dengan hak akses berbeda.</p>
+              <span>Marketplace</span>
+              <strong>Katalog & Checkout</strong>
+              <p>Kanal belanja online untuk produk UMKM dan order request.</p>
             </article>
             <article class="snapshot-card">
-              <span>Simulasi Endpoint</span>
-              <strong>Checkout API</strong>
-              <p>Alur transaksi diarahkan ke Marketplace API dan API Gateway.</p>
+              <span>POS</span>
+              <strong>Transaksi Offline</strong>
+              <p>POS menjadi konteks toko fisik yang terhubung ke pembayaran ekosistem.</p>
             </article>
             <article class="snapshot-card">
-              <span>Monitoring</span>
-              <strong>Order Timeline</strong>
-              <p>Tracking status order dari pending payment sampai completed.</p>
+              <span>LogistiKita</span>
+              <strong>Pengiriman</strong>
+              <p>Order berbayar bisa diteruskan menjadi request pengiriman.</p>
             </article>
             <article class="snapshot-card">
-              <span>Ekosistem UMKM</span>
-              <strong>10+ Seller</strong>
-              <p>Dataset produk lintas kategori untuk kebutuhan pengujian.</p>
+              <span>Gateway & Bank</span>
+              <strong>Payment Request</strong>
+              <p>Semua pembayaran tetap lewat Gateway dan SmartBank.</p>
             </article>
           </section>
 
@@ -472,27 +477,27 @@ function shellTemplate() {
             <div class="feature-grid">
               <article class="feature-card">
                 <h3>Katalog Produk Dinamis</h3>
-                <p>Filter kategori, seller, stok, rentang harga, dan sorting untuk kebutuhan belanja cepat.</p>
+                <p>Etalase produk UMKM dengan search, kategori, seller, stok, harga, dan sorting.</p>
               </article>
               <article class="feature-card">
                 <h3>Cart dan Checkout</h3>
-                <p>Pembeli dapat kelola kuantitas item, menghitung fee 2%, lalu membuat request checkout.</p>
+                <p>Pembeli kelola kuantitas item, melihat fee marketplace 2%, lalu membuat checkout request.</p>
               </article>
               <article class="feature-card">
-                <h3>Status Order Bertahap</h3>
-                <p>Riwayat order dilengkapi timeline progres dari draft hingga penyelesaian pengiriman.</p>
+                <h3>Terhubung LogistiKita</h3>
+                <p>Status order disiapkan untuk flow pengiriman setelah pembayaran berhasil.</p>
+              </article>
+              <article class="feature-card">
+                <h3>Konteks WarungPOS</h3>
+                <p>Landing menjelaskan bahwa POS adalah kanal offline terpisah yang saling terhubung via Gateway.</p>
               </article>
               <article class="feature-card">
                 <h3>Seller Center</h3>
-                <p>Penjual mengelola produk, stok, status aktif/nonaktif, dan melakukan preview data produk.</p>
+                <p>Penjual mengelola produk, stok, status aktif/nonaktif, dan preview data produk.</p>
               </article>
               <article class="feature-card">
                 <h3>Dashboard Role-Based</h3>
-                <p>Tiap role melihat metrik dan action yang relevan sesuai konteks operasionalnya.</p>
-              </article>
-              <article class="feature-card">
-                <h3>Session Demo LocalStorage</h3>
-                <p>Login dan register menggunakan session mock untuk validasi alur frontend tanpa backend auth.</p>
+                <p>Pembeli, penjual, dan admin melihat action sesuai hak akses pada frontend demo.</p>
               </article>
             </div>
           </section>
@@ -540,12 +545,12 @@ function shellTemplate() {
               <article class="journey-step">
                 <span>03</span>
                 <strong>Checkout Request</strong>
-                <p>Order dibentuk dari cart atau single product lalu diteruskan ke endpoint backend.</p>
+                <p>Marketplace menghitung subtotal dan fee 2%, lalu membuat request ke API Gateway.</p>
               </article>
               <article class="journey-step">
                 <span>04</span>
-                <strong>Monitoring Status</strong>
-                <p>Admin dan pembeli memantau progres pembayaran dan pengiriman lewat timeline order.</p>
+                <strong>Pengiriman</strong>
+                <p>Setelah pembayaran sukses, order siap diteruskan sebagai request LogistiKita.</p>
               </article>
             </div>
           </section>
@@ -556,7 +561,8 @@ function shellTemplate() {
               <p>Gunakan login role demo untuk menguji seluruh flow, atau register cepat sebagai pembeli.</p>
             </div>
             <div class="landing-actions">
-              <button class="btn btn-primary" type="button" data-page="login">Masuk Role Demo</button>
+              <button class="btn btn-primary" type="button" data-page="product-list">Mulai Lihat Produk</button>
+              <button class="btn btn-secondary" type="button" data-page="login">Masuk Role Demo</button>
               <button class="btn btn-secondary" type="button" data-page="register">Register Pembeli</button>
             </div>
           </section>
@@ -627,10 +633,71 @@ function shellTemplate() {
         </div>
 
         <div id="page-product-list" class="page">
-          <div class="hero-section">
-            <h1>Temukan Produk UMKM Pilihan</h1>
-            <p>Dukung usaha lokal dengan berbelanja di PasarKita. Checkout hanya membuat request ke Marketplace/API Gateway.</p>
-          </div>
+          <section class="marketplace-hero">
+            <div class="marketplace-hero-copy">
+              <span class="category-badge">PasarKita Mall UMKM</span>
+              <h1>Belanja produk UMKM lokal, lihat-lihat dulu tanpa login.</h1>
+              <p>
+                Jelajahi produk, bandingkan toko, cek stok, dan lihat detail tanpa akun.
+                Login hanya diperlukan saat masuk keranjang atau checkout.
+                Marketplace hanya membuat request order dan pembayaran ke backend, sedangkan POS dan LogistiKita berjalan sebagai modul ekosistem terpisah.
+              </p>
+              <div class="marketplace-search-preview">
+                <span>Cari produk UMKM</span>
+                <button class="btn btn-primary" type="button" data-focus-catalog>Cari Sekarang</button>
+              </div>
+            </div>
+            <div class="marketplace-promo-card">
+              <span class="promo-kicker">Ekosistem Terhubung</span>
+              <h2>Marketplace -> Gateway -> SmartBank -> LogistiKita</h2>
+              <p>Checkout sukses dapat diteruskan menjadi request pengiriman tanpa marketplace mengubah saldo.</p>
+              <div class="promo-metrics">
+                <div>
+                  <strong>2%</strong>
+                  <span>Fee marketplace</span>
+                </div>
+                <div>
+                  <strong>POS</strong>
+                  <span>Kanal offline</span>
+                </div>
+                <div>
+                  <strong>API</strong>
+                  <span>Kontrak layanan</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="marketplace-service-strip" aria-label="Layanan ekosistem">
+            <article class="service-pill">
+              <strong>Etalase UMKM</strong>
+              <span>Katalog, detail produk, cart, checkout.</span>
+            </article>
+            <article class="service-pill">
+              <strong>WarungPOS</strong>
+              <span>Konteks transaksi offline toko fisik.</span>
+            </article>
+            <article class="service-pill">
+              <strong>LogistiKita</strong>
+              <span>Request pengiriman setelah pembayaran.</span>
+            </article>
+            <article class="service-pill">
+              <strong>SmartBank</strong>
+              <span>Payment request lewat API Gateway.</span>
+            </article>
+          </section>
+
+          <section class="marketplace-window" aria-label="Etalase utama marketplace">
+            <div class="marketplace-window-main">
+              <span class="promo-kicker light">Promo Etalase</span>
+              <h2>Produk pilihan UMKM minggu ini</h2>
+              <p>Cek makanan, fashion, kerajinan, minuman, dan kesehatan lokal dari seller aktif.</p>
+            </div>
+            <div class="marketplace-window-side">
+              <strong>Tanpa login untuk browsing</strong>
+              <span>Login pembeli baru diperlukan saat add to cart atau checkout.</span>
+            </div>
+          </section>
 
           <section class="category-section" aria-label="Kategori produk">
             <div class="section-heading">
@@ -855,7 +922,15 @@ function routeForPage(pageId, payload = {}) {
 }
 
 function isPublicPath(path) {
-  return path === "/" || path === "" || path === "/login" || path === "/register";
+  return (
+    path === "/" ||
+    path === "" ||
+    path === "/login" ||
+    path === "/register" ||
+    path === "/products" ||
+    path.startsWith("/products/") ||
+    path.startsWith("/stores/")
+  );
 }
 
 function routeRequiresSeller(path) {
@@ -1036,10 +1111,10 @@ function renderNav() {
   const currentPath = (window.location.hash || "#/").slice(1).split("?")[0] || "/";
 
   const links = [{ page: "landing", href: "#/", label: "Beranda", match: ["/", ""] }];
+  links.push({ page: "product-list", href: "#/products", label: "Produk", match: ["/products"] });
 
   if (state.currentUser) {
     links.push({ page: "dashboard", href: "#/dashboard", label: getRoleProfile(state.currentUser.role).label, match: ["/dashboard"] });
-    links.push({ page: "product-list", href: "#/products", label: "Produk", match: ["/products"] });
 
     if (state.currentUser.role === "buyer") {
       links.push({
@@ -1151,6 +1226,25 @@ function logout() {
   saveSession();
   showToast("Session role dihapus", "info");
   navigate("landing");
+}
+
+function promptLoginForShopping() {
+  showToast("Silakan login sebagai pembeli untuk belanja", "info");
+  navigate("login");
+}
+
+function runGlobalSearch() {
+  const keyword = document.getElementById("global-search-input")?.value.trim() || "";
+  navigate("product-list");
+  window.setTimeout(() => {
+    const productSearch = document.getElementById("search-input");
+    if (productSearch) {
+      productSearch.value = keyword;
+      resetProductVisibleCount();
+      renderProductGrid();
+      productSearch.focus();
+    }
+  }, 0);
 }
 
 function renderMetricCard(label, value, note = "") {
@@ -1309,18 +1403,27 @@ function getSellers() {
 
 function productCardTemplate(product) {
   const canBuy = state.currentUser?.role === "buyer";
+  const seller = getSellerProfile(product.sellerId);
   return `
     <div class="product-card">
-      <div class="product-image-placeholder">Gambar ${escapeHtml(product.name.split(" ")[0])}</div>
+      <div class="product-image-placeholder">
+        <span>Produk UMKM</span>
+        <strong>${escapeHtml(product.name.split(" ")[0])}</strong>
+      </div>
       <div class="product-card-badges">
         <span class="category-badge">${escapeHtml(product.category)}</span>
+        <span class="marketplace-badge">UMKM Lokal</span>
         ${product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD ? `<span class="stock-badge limited">Stok terbatas</span>` : ""}
         ${product.stock === 0 ? `<span class="stock-badge empty">Stok habis</span>` : ""}
       </div>
       <h3 class="product-title">${escapeHtml(product.name)}</h3>
       <button class="product-seller seller-link" type="button" data-store-id="${escapeHtml(product.sellerId)}">
-        ${escapeHtml(getSellerProfile(product.sellerId).name)}
+        ${escapeHtml(seller.name)}
       </button>
+      <div class="product-trust-row">
+        <span>${escapeHtml(seller.location)}</span>
+        <span>Rating ${seller.rating}</span>
+      </div>
       <p class="product-description">${escapeHtml(product.desc.substring(0, 72))}${product.desc.length > 72 ? "..." : ""}</p>
       <div class="product-price">${formatRp(product.price)}</div>
       <div class="product-card-actions ${canBuy ? "product-card-actions-three" : ""}">
@@ -1333,7 +1436,11 @@ function productCardTemplate(product) {
               <button class="btn btn-primary" type="button" data-checkout-id="${product.id}" ${product.stock === 0 ? "disabled" : ""}>
                 ${product.stock === 0 ? "Habis" : "Beli"}
               </button>`
-            : `<span class="role-note">Login pembeli untuk checkout</span>`
+            : state.currentUser
+              ? `<span class="role-note">Role ini hanya bisa melihat produk</span>`
+              : `<button class="btn btn-secondary" type="button" data-login-required ${product.stock === 0 ? "disabled" : ""}>
+                  Login untuk Beli
+                </button>`
         }
       </div>
     </div>
@@ -1561,7 +1668,19 @@ function viewProductDetail(id, updateHash = true) {
               </button>
             </div>`
           : `<div class="role-access-note">
-              Checkout produk hanya tersedia untuk role pembeli. Role saat ini hanya bisa melihat katalog dan profil toko.
+              ${
+                state.currentUser
+                  ? "Checkout produk hanya tersedia untuk role pembeli. Role saat ini hanya bisa melihat katalog dan profil toko."
+                  : "Anda bisa melihat detail produk tanpa login. Login sebagai pembeli diperlukan untuk menambahkan ke keranjang atau checkout."
+              }
+              ${
+                state.currentUser
+                  ? ""
+                  : `<div class="detail-actions guest-detail-actions">
+                      <button class="btn btn-primary full-width" type="button" data-login-required>Login untuk Belanja</button>
+                      <button class="btn btn-secondary full-width" type="button" data-page="register">Register Pembeli</button>
+                    </div>`
+              }
             </div>`
       }
     </div>
@@ -2369,6 +2488,16 @@ function bindEvents() {
       return;
     }
 
+    if (event.target.closest("[data-login-required]")) {
+      promptLoginForShopping();
+      return;
+    }
+
+    if (event.target.closest("[data-global-search]")) {
+      runGlobalSearch();
+      return;
+    }
+
     if (event.target.closest("[data-logout]")) {
       logout();
       return;
@@ -2460,6 +2589,12 @@ function bindEvents() {
       return;
     }
 
+    if (event.target.closest("[data-focus-catalog]")) {
+      document.getElementById("search-input")?.focus();
+      document.getElementById("search-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     if (event.target.closest("[data-open-product-modal]")) {
       openProductModal();
       return;
@@ -2533,6 +2668,10 @@ function bindEvents() {
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeProductModal();
+    if (event.key === "Enter" && event.target.id === "global-search-input") {
+      event.preventDefault();
+      runGlobalSearch();
+    }
   });
 
   window.addEventListener("hashchange", syncRouteFromHash);
