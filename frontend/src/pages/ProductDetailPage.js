@@ -1,4 +1,6 @@
 import { getProductById } from "../api/marketplaceApi.js";
+import { showToast } from "../components/Toast.js";
+import { addCartItem } from "../utils/cart.js";
 import { formatCurrency } from "../utils/currency.js";
 import { calculateCheckoutPreview } from "../utils/feeCalculator.js";
 import { escapeHtml, validateQuantity } from "../utils/validation.js";
@@ -8,6 +10,7 @@ export async function render({ params }) {
   const product = response.data;
   const preview = calculateCheckoutPreview(product.harga, 1);
   const disabled = product.stok <= 0 || !product.status_aktif;
+  window.__pasarkitaDetailProduct = product;
 
   return `
     <section class="detail-layout">
@@ -72,6 +75,14 @@ export async function render({ params }) {
           >
             Lanjut checkout
           </button>
+          <button
+            class="secondary-button"
+            type="button"
+            id="detail-cart-button"
+            ${disabled ? "disabled" : ""}
+          >
+            Tambah ke keranjang
+          </button>
           <a class="secondary-button" href="#/products">Kembali ke produk</a>
         </div>
       </article>
@@ -82,6 +93,7 @@ export async function render({ params }) {
 export function afterRender({ params, navigate }) {
   const input = document.querySelector("#qty-input");
   const button = document.querySelector("#detail-checkout-button");
+  const cartButton = document.querySelector("#detail-cart-button");
   const message = document.querySelector("#qty-message");
   const subtotalPreview = document.querySelector("#subtotal-preview");
 
@@ -108,5 +120,18 @@ export function afterRender({ params, navigate }) {
     }
 
     navigate(`/checkout/${params.id}?qty=${qty}`);
+  });
+
+  cartButton?.addEventListener("click", () => {
+    const qty = Number(input.value || 0);
+    const validation = validateQuantity(qty, Number(input.dataset.stock || 0));
+
+    if (!validation.valid) {
+      syncQuantity();
+      return;
+    }
+
+    addCartItem(window.__pasarkitaDetailProduct, qty);
+    showToast("Produk masuk ke keranjang.");
   });
 }

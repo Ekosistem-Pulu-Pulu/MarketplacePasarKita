@@ -1,64 +1,142 @@
 import { getOrderStatus } from "../api/marketplaceApi.js";
+import { EmptyState } from "../components/EmptyState.js";
 import { StatusBadge, getStatusMeta } from "../components/StatusBadge.js";
 import { formatCurrency } from "../utils/currency.js";
+import { getStoredOrder, getStoredOrders, rememberOrder } from "../utils/orders.js";
 import { escapeHtml } from "../utils/validation.js";
 
-export async function render({ params }) {
-  const response = await getOrderStatus(params.id);
-  const order = response.data;
+const timelineSteps = [
+  { status: "PENDING_PAYMENT", label: "Checkout dibuat" },
+  { status: "PAYMENT_PROCESSING", label: "Payment diproses" },
+  { status: "PAID", label: "Pembayaran berhasil" },
+  { status: "READY_FOR_SHIPMENT", label: "Seller siapkan barang" },
+  { status: "SHIPPED", label: "Dikirim" },
+  { status: "COMPLETED", label: "Selesai" },
+];
+
+function statusIndex(status) {
+  const index = timelineSteps.findIndex((step) => step.status === status);
+  return index === -1 ? 0 : index;
+}
+
+function orderCard(order) {
+  return `
+    <article class="order-card">
+      <div>
+        <strong>${escapeHtml(order.order_id)}</strong>
+        <p>${escapeHtml(order.nama_produk || order.product_id || "Order marketplace")}</p>
+      </div>
+      <div class="order-card-side">
+        ${StatusBadge(order.status_order)}
+        <strong>${formatCurrency(order.total_bayar || 0)}</strong>
+        <a class="secondary-button small" href="#/orders/${escapeHtml(order.order_id)}">Detail</a>
+      </div>
+    </article>
+  `;
+}
+
+function timeline(status) {
+  const current = statusIndex(status);
+  const failed = status === "PAYMENT_FAILED" || status === "CANCELLED";
+
+  return `
+    <div class="timeline">
+      ${timelineSteps
+        .map((step, index) => {
+          const state = failed && index === 1 ? "failed" : index < current ? "done" : index === current ? "active" : "";
+          return `
+            <div class="timeline-step ${state}">
+              <span aria-hidden="true"></span>
+              <strong>${step.label}</strong>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+async function renderOrderDetail(orderId) {
+  let order;
+
+  try {
+    const response = await getOrderStatus(orderId);
+    order = response.data;
+    rememberOrder(order);
+  } catch {
+    order = getStoredOrder(orderId);
+  }
+
+  if (!order) {
+    return EmptyState({
+      title: "Order tidak ditemukan",
+      message: "Order belum tersimpan di browser dan API tidak mengembalikan data.",
+      action: `<a class="primary-button" href="#/orders">Lihat daftar order</a>`,
+    });
+  }
+
   const meta = getStatusMeta(order.status_order);
 
   return `
-    <section class="order-status-layout">
-      <article class="card-panel order-status-card">
+    <section class="order-detail-layout">
+      <article class="status-card order-detail-card">
         <p class="eyebrow">Status order</p>
-        <div class="order-status-head">
-          <div>
-            <h1>${escapeHtml(order.order_id)}</h1>
-            <p>${escapeHtml(meta.description)}</p>
-          </div>
-          ${StatusBadge(order.status_order)}
-        </div>
-
-        <dl class="detail-list">
-          <div>
-            <dt>Produk</dt>
-            <dd>${escapeHtml(order.nama_produk || order.product_id)}</dd>
-          </div>
-          <div>
-            <dt>Qty</dt>
-            <dd>${order.qty || "-"}</dd>
-          </div>
-          <div>
-            <dt>Subtotal</dt>
-            <dd>${formatCurrency(order.subtotal)}</dd>
-          </div>
-          <div>
-            <dt>Marketplace fee</dt>
-            <dd>${formatCurrency(order.marketplace_fee)}</dd>
-          </div>
-          <div>
-            <dt>Total bayar</dt>
-            <dd>${formatCurrency(order.total_bayar)}</dd>
-          </div>
-          <div>
-            <dt>Payment request</dt>
-            <dd>${escapeHtml(order.payment_request_id || "-")}</dd>
-          </div>
-        </dl>
-
-        <div class="integration-note">
-          Status diambil dari <code>GET /marketplace/status_order?order_id=${escapeHtml(order.order_id)}</code>.
-          Frontend hanya membaca status dari API atau mock data.
-        </div>
-
-        <div class="form-actions">
+        <h2>${escapeHtml(order.order_id)}</h2>
+        <div class="status-badge-wrap">${StatusBadge(order.status_order)}</div>
+        <p class="status-desc">${escapeHtml(meta.description)}</p>
+        ${timeline(order.status_order)}
+        <div class="status-actions">
           <button class="primary-button" type="button" id="refresh-order">Refresh status</button>
-          <a class="secondary-button" href="#/products">Kembali ke katalog</a>
+          <a class="secondary-button" href="#/orders">Daftar order</a>
+          <a class="secondary-button" href="#/products">Belanja lagi</a>
         </div>
       </article>
+
+      <aside class="summary-card">
+        <h2>Detail transaksi</h2>
+        <div class="order-items">
+          <div class="order-item-row"><span>Produk</span><strong>${escapeHtml(order.nama_produk || order.product_id || "-")}</strong></div>
+          <div class="order-item-row"><span>Qty</span><strong>${order.qty || "-"}</strong></div>
+          <div class="order-item-row"><span>Subtotal</span><strong>${formatCurrency(order.subtotal || 0)}</strong></div>
+          <div class="order-item-row"><span>Marketplace fee</span><strong>${formatCurrency(order.marketplace_fee || 0)}</strong></div>
+          <div class="order-item-row"><span>Total bayar</span><strong>${formatCurrency(order.total_bayar || 0)}</strong></div>
+          <div class="order-item-row"><span>Payment request</span><strong>${escapeHtml(order.payment_request_id || "-")}</strong></div>
+        </div>
+        <div class="shipping-box">
+          <strong>Alamat pengiriman</strong>
+          <p>${escapeHtml(order.alamat_pengiriman || "Alamat mengikuti request checkout.")}</p>
+        </div>
+      </aside>
     </section>
   `;
+}
+
+function renderOrderList() {
+  const orders = getStoredOrders();
+
+  return `
+    <section class="page-title split-title">
+      <div>
+        <p class="eyebrow">Order</p>
+        <h1>Daftar order terakhir</h1>
+        <p>Order yang dibuat dari browser ini disimpan untuk memudahkan tracking status.</p>
+      </div>
+      <a class="secondary-button" href="#/products">Belanja lagi</a>
+    </section>
+
+    ${
+      orders.length
+        ? `<section class="order-list">${orders.map(orderCard).join("")}</section>`
+        : EmptyState({
+            title: "Belum ada order",
+            message: "Checkout produk terlebih dahulu untuk melihat daftar order.",
+          })
+    }
+  `;
+}
+
+export async function render({ params }) {
+  return params.id ? renderOrderDetail(params.id) : renderOrderList();
 }
 
 export function afterRender({ renderRoute }) {

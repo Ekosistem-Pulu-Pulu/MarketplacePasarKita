@@ -21,10 +21,18 @@ export function ProductCard(product) {
         <p>${escapeHtml(product.deskripsi)}</p>
         <div class="product-footer">
           <strong>${formatCurrency(product.harga)}</strong>
-          <div class="product-actions">
+          <div class="product-actions product-actions-stacked">
             <a class="secondary-button small" href="#/products/${product.product_id}">
               Detail
             </a>
+            <button
+              class="secondary-button small"
+              type="button"
+              data-add-cart-id="${product.product_id}"
+              ${disabled ? "disabled" : ""}
+            >
+              Keranjang
+            </button>
             <button
               class="primary-button small"
               type="button"

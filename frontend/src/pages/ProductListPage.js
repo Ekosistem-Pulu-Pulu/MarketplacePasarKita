@@ -1,9 +1,11 @@
 import { ProductCard } from "../components/ProductCard.js";
 import { EmptyState } from "../components/EmptyState.js";
+import { showToast } from "../components/Toast.js";
 import { browseProducts } from "../api/marketplaceApi.js";
+import { addCartItem } from "../utils/cart.js";
 import { escapeHtml } from "../utils/validation.js";
 
-const categoryOptions = ["Semua", "Makanan", "Minuman", "Kesehatan", "Kerajinan"];
+const categoryOptions = ["Semua", "Makanan", "Minuman", "Kesehatan", "Kerajinan", "Fashion"];
 
 function applyClientFilters(products, { category, sort }) {
   let result = products.filter((product) => product.status_aktif);
@@ -45,6 +47,7 @@ export async function render({ query }) {
     limit: 50,
   });
   const products = applyClientFilters(response.data.items, { category, sort });
+  window.__pasarkitaProducts = products;
 
   return `
     <section class="catalog-hero">
@@ -52,16 +55,16 @@ export async function render({ query }) {
         <p class="eyebrow">Marketplace PasarKita</p>
         <h1>Katalog UMKM dengan checkout request yang tetap melewati API Gateway.</h1>
         <p>
-          Frontend ini hanya menangani browse produk, detail, checkout request,
-          status order, dan manajemen produk seller. Saldo dan payment diproses
-          oleh service lain, bukan oleh Marketplace.
+          Flow belanja mengikuti pola marketplace modern: cari produk, cek detail,
+          tambah ke keranjang, checkout, lalu pantau status order dari Marketplace API.
         </p>
       </div>
       <aside class="scope-card">
         <strong>Aturan bisnis</strong>
         <span>Fee marketplace 2%</span>
         <span>Checkout tidak mengubah saldo</span>
-        <span>Mock mode aktif untuk UI-first</span>
+        <span>Data produk dari backend Marketplace</span>
+        <span>Keranjang disimpan di browser</span>
       </aside>
     </section>
 
@@ -120,7 +123,7 @@ export async function render({ query }) {
   `;
 }
 
-export function afterRender({ navigate }) {
+export function afterRender({ navigate, renderRoute }) {
   const form = document.querySelector("#product-filter-form");
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -137,6 +140,19 @@ export function afterRender({ navigate }) {
   document.querySelectorAll("[data-checkout-id]").forEach((button) => {
     button.addEventListener("click", () => {
       navigate(`/checkout/${button.dataset.checkoutId}?qty=1`);
+    });
+  });
+
+  document.querySelectorAll("[data-add-cart-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const product = window.__pasarkitaProducts?.find(
+        (item) => item.product_id === button.dataset.addCartId
+      );
+      if (!product) return;
+
+      addCartItem(product, 1);
+      showToast("Produk masuk ke keranjang.");
+      renderRoute();
     });
   });
 }

@@ -1,4 +1,4 @@
-import { Navbar } from "./components/Navbar.js";
+import { bindNavbar, Navbar } from "./components/Navbar.js";
 import { Loading } from "./components/Loading.js";
 import { showToast } from "./components/Toast.js";
 import * as ProductListPage from "./pages/ProductListPage.js";
@@ -6,6 +6,8 @@ import * as ProductDetailPage from "./pages/ProductDetailPage.js";
 import * as CheckoutPage from "./pages/CheckoutPage.js";
 import * as OrderStatusPage from "./pages/OrderStatusPage.js";
 import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
+import * as CartPage from "./pages/CartPage.js";
+import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
 
 let navbarRoot;
 let viewRoot;
@@ -13,9 +15,18 @@ let viewRoot;
 const routes = [
   { pattern: /^\/products$/, page: ProductListPage },
   { pattern: /^\/products\/([^/]+)$/, page: ProductDetailPage, keys: ["id"] },
+  { pattern: /^\/cart$/, page: CartPage },
+  { pattern: /^\/checkout$/, page: CheckoutPage },
   { pattern: /^\/checkout\/([^/]+)$/, page: CheckoutPage, keys: ["id"] },
+  { pattern: /^\/orders$/, page: OrderStatusPage },
   { pattern: /^\/orders\/([^/]+)$/, page: OrderStatusPage, keys: ["id"] },
   { pattern: /^\/seller\/products$/, page: SellerDashboardPage },
+  { pattern: /^\/support$/, page: InternalDashboardPage, params: { area: "support" } },
+  { pattern: /^\/finance$/, page: InternalDashboardPage, params: { area: "finance" } },
+  { pattern: /^\/fulfillment$/, page: InternalDashboardPage, params: { area: "fulfillment" } },
+  { pattern: /^\/admin\/catalog$/, page: InternalDashboardPage, params: { area: "catalog" } },
+  { pattern: /^\/admin\/platform$/, page: InternalDashboardPage, params: { area: "platform" } },
+  { pattern: /^\/admin\/tech$/, page: InternalDashboardPage, params: { area: "tech" } },
 ];
 
 function parseHash() {
@@ -34,7 +45,7 @@ function matchRoute(path) {
     const match = path.match(route.pattern);
     if (!match) continue;
 
-    const params = {};
+    const params = { ...(route.params || {}) };
     (route.keys || []).forEach((key, index) => {
       params[key] = decodeURIComponent(match[index + 1]);
     });
@@ -61,6 +72,7 @@ export async function renderRoute() {
   const matched = matchRoute(path);
 
   navbarRoot.innerHTML = Navbar(path);
+  bindNavbar({ navigate, renderRoute });
 
   if (!matched) {
     navigate("/products");
