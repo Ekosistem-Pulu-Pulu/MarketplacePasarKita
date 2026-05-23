@@ -1,0 +1,23 @@
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Go build artifacts
+*.exe
+*.test
+*.out
+coverage.out
+bin/
+tmp/
+
+# Logs
+*.log
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+

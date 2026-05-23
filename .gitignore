@@ -1,0 +1,62 @@
+# Environment and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Dependencies
+node_modules/
+
+# Frontend build output and caches
+dist/
+dist-ssr/
+.vite/
+.cache/
+.parcel-cache/
+coverage/
+
+# Go backend build/test artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof
+coverage.out
+*.coverprofile
+/backend/bin/
+/backend/tmp/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local app/editor state
+.codex/
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local databases and uploads
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+tmp/

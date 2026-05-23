@@ -1,0 +1,163 @@
+package controllers
+
+import (
+	"errors"
+	"strconv"
+
+	"github.com/gofiber/fiber/v2"
+
+	"pasarkita-marketplace-backend/services"
+)
+
+type MarketplaceController struct {
+	service *services.MarketplaceService
+}
+
+func NewMarketplaceController(service *services.MarketplaceService) *MarketplaceController {
+	return &MarketplaceController{service: service}
+}
+
+func (c *MarketplaceController) BrowseProducts(ctx *fiber.Ctx) error {
+	page, _ := strconv.Atoi(ctx.Query("page", "1"))
+	limit, _ := strconv.Atoi(ctx.Query("limit", "10"))
+
+	products, total, err := c.service.BrowseProducts(services.BrowseParams{
+		Keyword:  ctx.Query("keyword"),
+		Kategori: ctx.Query("kategori", ctx.Query("category")),
+		Sort:     ctx.Query("sort"),
+		Page:     page,
+		Limit:    limit,
+	})
+	if err != nil {
+		return err
+	}
+
+	return ok(ctx, fiber.Map{
+		"items": products,
+		"meta": fiber.Map{
+			"page":  page,
+			"limit": limit,
+			"total": total,
+		},
+	})
+}
+
+func (c *MarketplaceController) GetProduct(ctx *fiber.Ctx) error {
+	product, err := c.service.GetProduct(ctx.Params("id"))
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, product)
+}
+
+func (c *MarketplaceController) ListSellerProducts(ctx *fiber.Ctx) error {
+	products, err := c.service.ListSellerProducts()
+	if err != nil {
+		return err
+	}
+	return ok(ctx, products)
+}
+
+func (c *MarketplaceController) SaveProduct(ctx *fiber.Ctx) error {
+	var input services.ProductInput
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+
+	product, err := c.service.SaveProduct(input)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return created(ctx, product)
+}
+
+func (c *MarketplaceController) SetProductStatus(ctx *fiber.Ctx) error {
+	var input struct {
+		StatusAktif bool `json:"status_aktif"`
+	}
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+
+	product, err := c.service.SetProductStatus(ctx.Params("id"), input.StatusAktif)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, product)
+}
+
+func (c *MarketplaceController) Checkout(ctx *fiber.Ctx) error {
+	var input services.CheckoutInput
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+
+	order, err := c.service.Checkout(input, ctx.Get("Authorization"))
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return created(ctx, order)
+}
+
+func (c *MarketplaceController) IntegratePayment(ctx *fiber.Ctx) error {
+	var input services.PaymentIntegrationInput
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+
+	order, err := c.service.IntegratePayment(input, ctx.Get("Authorization"))
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, order)
+}
+
+func (c *MarketplaceController) GetOrderStatus(ctx *fiber.Ctx) error {
+	orderID := ctx.Query("order_id")
+	if orderID == "" {
+		orderID = ctx.Params("id")
+	}
+	if orderID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "order_id wajib diisi")
+	}
+
+	order, err := c.service.GetOrder(orderID)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, order)
+}
+
+func (c *MarketplaceController) GetMarketplaceFee(ctx *fiber.Ctx) error {
+	subtotal, err := strconv.ParseInt(ctx.Query("subtotal", "0"), 10, 64)
+	if err != nil || subtotal < 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "subtotal tidak valid")
+	}
+
+	fee := services.CalculateMarketplaceFee(subtotal)
+	return ok(ctx, fiber.Map{
+		"subtotal":          subtotal,
+		"fee_percent":       services.MarketplaceFeePercent,
+		"marketplace_fee":   fee,
+		"total_with_fee":    subtotal + fee,
+		"calculation_basis": "marketplace_fee = 2% x subtotal",
+	})
+}
+
+func ok(ctx *fiber.Ctx, data any) error {
+	return ctx.JSON(fiber.Map{"status": "success", "data": data})
+}
+
+func created(ctx *fiber.Ctx, data any) error {
+	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": data})
+}
+
+func mapServiceError(err error) error {
+	if errors.Is(err, services.ErrBadRequest) {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	if errors.Is(err, services.ErrNotFound) {
+		return fiber.NewError(fiber.StatusNotFound, "data tidak ditemukan")
+	}
+	return err
+}
