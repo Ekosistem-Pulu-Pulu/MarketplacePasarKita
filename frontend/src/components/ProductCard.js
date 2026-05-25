@@ -7,7 +7,11 @@ export function ProductCard(product) {
   return `
     <article class="product-card">
       <div class="product-media" aria-hidden="true">
-        <span class="product-initial">${escapeHtml(product.kategori.slice(0, 2).toUpperCase())}</span>
+        ${
+          product.image_url
+            ? `<img src="${escapeHtml(product.image_url)}" alt="" />`
+            : `<span class="product-initial">${escapeHtml(product.kategori.slice(0, 2).toUpperCase())}</span>`
+        }
         <span class="product-category">${escapeHtml(product.kategori)}</span>
       </div>
       <div class="product-body">

@@ -3,11 +3,14 @@ import {
   createProduct,
   deactivateProduct,
   getProductById,
+  listSellerOrders,
   updateProduct,
 } from "../api/marketplaceApi.js";
+import { StatusBadge } from "../components/StatusBadge.js";
 import { ProductForm } from "../components/ProductForm.js";
 import { ProductTable } from "../components/ProductTable.js";
 import { showToast } from "../components/Toast.js";
+import { formatCurrency } from "../utils/currency.js";
 import { escapeHtml, validateProductForm } from "../utils/validation.js";
 
 let editingProductId = null;
@@ -23,6 +26,8 @@ export async function render() {
     includeInactive: true,
   });
   const products = response.data.items;
+  const ordersResult = await Promise.allSettled([listSellerOrders()]);
+  const sellerOrders = ordersResult[0].status === "fulfilled" ? ordersResult[0].value.data || [] : [];
   const editingProduct = editingProductId
     ? (await getProductById(editingProductId, { includeInactive: true })).data
     : null;
@@ -57,6 +62,28 @@ export async function render() {
           ${ProductTable(products)}
         </section>
       </div>
+
+      <section class="card-panel seller-order-panel">
+        <h2>Order toko</h2>
+        <div class="order-list">
+          ${
+            sellerOrders.length
+              ? sellerOrders.map((order) => `
+                <article class="order-card">
+                  <div>
+                    <strong>${escapeHtml(order.order_id)}</strong>
+                    <p>${(order.items || []).map((item) => escapeHtml(item.nama_produk)).join(", ")}</p>
+                  </div>
+                  <div class="order-card-side">
+                    ${StatusBadge(order.status_order)}
+                    <strong>${formatCurrency(order.total_bayar || 0)}</strong>
+                  </div>
+                </article>
+              `).join("")
+              : `<p class="muted">Belum ada order untuk toko ini.</p>`
+          }
+        </div>
+      </section>
     </section>
   `;
 }

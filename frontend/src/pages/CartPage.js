@@ -1,9 +1,14 @@
 import { EmptyState } from "../components/EmptyState.js";
 import {
+  getCart as getBackendCart,
+  removeCartItem as removeBackendCartItem,
+  updateCartItem as updateBackendCartItem,
+} from "../api/marketplaceApi.js";
+import {
   calculateCartSummary,
   getCartItems,
-  removeCartItem,
-  updateCartItem,
+  removeCartItem as removeLocalCartItem,
+  updateCartItem as updateLocalCartItem,
 } from "../utils/cart.js";
 import { formatCurrency } from "../utils/currency.js";
 import { isAuthenticated } from "../utils/storage.js";
@@ -48,9 +53,31 @@ function cartItemTemplate(item) {
 }
 
 export async function render() {
-  const items = getCartItems();
+  let source = "local";
+  let items = getCartItems();
+  let backendSubtotal = null;
+
+  if (isAuthenticated()) {
+    try {
+      const response = await getBackendCart();
+      const data = response.data || {};
+      items = (data.items || []).map((entry) => ({
+        ...(entry.product || {}),
+        qty: entry.item?.qty || 1,
+        selected: Boolean(entry.item?.selected),
+      }));
+      backendSubtotal = data.subtotal;
+      source = "backend";
+    } catch {
+      source = "local";
+    }
+  }
+
   const selectedItems = items.filter((item) => item.selected && item.status_aktif);
   const summary = calculateCartSummary(selectedItems);
+  if (backendSubtotal !== null) {
+    summary.subtotal = backendSubtotal;
+  }
   const checkoutHref = selectedItems.length
     ? isAuthenticated()
       ? "#/checkout"
@@ -62,7 +89,7 @@ export async function render() {
       <div>
         <p class="eyebrow">Keranjang</p>
         <h1>Keranjang belanja</h1>
-        <p>Pilih item, cek ringkasan biaya, lalu lanjut checkout.</p>
+        <p>${source === "backend" ? "Cart tersimpan di akun dan database backend." : "Guest cart disimpan lokal sampai user login."}</p>
       </div>
       <a class="secondary-button" href="#/products">Lanjut belanja</a>
     </section>
@@ -97,22 +124,34 @@ export async function render() {
 
 export function afterRender({ renderRoute }) {
   document.querySelectorAll("[data-cart-select]").forEach((input) => {
-    input.addEventListener("change", () => {
-      updateCartItem(input.dataset.cartSelect, { selected: input.checked });
+    input.addEventListener("change", async () => {
+      if (isAuthenticated()) {
+        await updateBackendCartItem(input.dataset.cartSelect, { qty: Number(input.closest(".cart-item")?.querySelector("[data-cart-qty]")?.value || 1), selected: input.checked });
+      } else {
+        updateLocalCartItem(input.dataset.cartSelect, { selected: input.checked });
+      }
       renderRoute();
     });
   });
 
   document.querySelectorAll("[data-cart-qty]").forEach((input) => {
-    input.addEventListener("change", () => {
-      updateCartItem(input.dataset.cartQty, { qty: Number(input.value) || 1 });
+    input.addEventListener("change", async () => {
+      if (isAuthenticated()) {
+        await updateBackendCartItem(input.dataset.cartQty, { qty: Number(input.value) || 1 });
+      } else {
+        updateLocalCartItem(input.dataset.cartQty, { qty: Number(input.value) || 1 });
+      }
       renderRoute();
     });
   });
 
   document.querySelectorAll("[data-cart-remove]").forEach((button) => {
-    button.addEventListener("click", () => {
-      removeCartItem(button.dataset.cartRemove);
+    button.addEventListener("click", async () => {
+      if (isAuthenticated()) {
+        await removeBackendCartItem(button.dataset.cartRemove);
+      } else {
+        removeLocalCartItem(button.dataset.cartRemove);
+      }
       renderRoute();
     });
   });

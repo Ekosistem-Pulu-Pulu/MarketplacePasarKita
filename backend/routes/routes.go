@@ -9,7 +9,7 @@ import (
 	"pasarkita-marketplace-backend/repositories"
 )
 
-func Register(app *fiber.App, cfg config.Config, marketplace *controllers.MarketplaceController, auth *controllers.AuthController, auditRepo *repositories.AuditLogRepository) {
+func Register(app *fiber.App, cfg config.Config, marketplace *controllers.MarketplaceController, auth *controllers.AuthController, account *controllers.AccountController, platform *controllers.PlatformController, auditRepo *repositories.AuditLogRepository) {
 	app.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.JSON(fiber.Map{
 			"service": "Marketplace PasarKita",
@@ -47,6 +47,13 @@ func Register(app *fiber.App, cfg config.Config, marketplace *controllers.Market
 	authGroup.Get("/me", auth.Me)
 	authGroup.Get("/demo-users", auth.DemoUsers)
 
+	accountGroup := app.Group("/account", middleware.OptionalAuth(cfg), middleware.RequestLogger(auditRepo))
+	accountGroup.Post("/register", account.Register)
+	accountGroup.Get("/me", account.Me)
+	accountGroup.Patch("/me", account.UpdateProfile)
+	accountGroup.Get("/addresses", account.ListAddresses)
+	accountGroup.Post("/addresses", account.SaveAddress)
+
 	marketplaceGroup := app.Group("/marketplace", middleware.OptionalAuth(cfg), middleware.RequestLogger(auditRepo))
 	marketplaceGroup.Get("/browse_produk", marketplace.BrowseProducts)
 	marketplaceGroup.Get("/products/:id", marketplace.GetProduct)
@@ -58,4 +65,26 @@ func Register(app *fiber.App, cfg config.Config, marketplace *controllers.Market
 	marketplaceGroup.Get("/status_order", marketplace.GetOrderStatus)
 	marketplaceGroup.Get("/orders/:id", marketplace.GetOrderStatus)
 	marketplaceGroup.Get("/biaya_layanan_marketplace", marketplace.GetMarketplaceFee)
+	marketplaceGroup.Get("/cart", platform.Cart)
+	marketplaceGroup.Post("/cart", platform.AddCart)
+	marketplaceGroup.Patch("/cart/:product_id", platform.UpdateCart)
+	marketplaceGroup.Delete("/cart/:product_id", platform.RemoveCart)
+	marketplaceGroup.Post("/cart/checkout", platform.CheckoutCart)
+	marketplaceGroup.Get("/orders", platform.ListOrders)
+	marketplaceGroup.Patch("/orders/:id/cancel", platform.CancelOrder)
+	marketplaceGroup.Get("/seller/orders", platform.ListSellerOrders)
+	marketplaceGroup.Get("/stores", platform.ListStores)
+	marketplaceGroup.Get("/stores/me", platform.MyStore)
+	marketplaceGroup.Get("/stores/:id", platform.GetStore)
+	marketplaceGroup.Get("/vouchers", platform.ListVouchers)
+	marketplaceGroup.Get("/vouchers/:code/apply", platform.ApplyVoucher)
+	marketplaceGroup.Get("/shipping/options", platform.ShippingOptions)
+	marketplaceGroup.Get("/products/:product_id/reviews", platform.ListReviews)
+	marketplaceGroup.Post("/products/:product_id/reviews", platform.CreateReview)
+	marketplaceGroup.Get("/products/:product_id/discussions", platform.ListDiscussions)
+	marketplaceGroup.Post("/products/:product_id/discussions", platform.CreateDiscussion)
+	marketplaceGroup.Get("/chat", platform.ListChat)
+	marketplaceGroup.Post("/chat", platform.SendChat)
+	marketplaceGroup.Get("/notifications", platform.ListNotifications)
+	marketplaceGroup.Patch("/notifications/:id/read", platform.MarkNotificationRead)
 }

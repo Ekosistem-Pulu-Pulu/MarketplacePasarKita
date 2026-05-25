@@ -72,11 +72,16 @@ export function getRoleHome(role = getActiveRole()) {
 export function getRoleNavItems(role = getActiveRole()) {
   const shared = [
     { href: "#/products", label: "Produk", match: (path) => path.startsWith("/products") },
+    { href: "#/stores", label: "Toko", match: (path) => path.startsWith("/stores") },
     { href: "#/cart", label: "Keranjang", match: (path) => path === "/cart" },
   ];
 
   const authenticatedShared = isAuthenticated()
-    ? [...shared, { href: "#/orders", label: "Order", match: (path) => path.startsWith("/orders") }]
+    ? [
+        ...shared,
+        { href: "#/orders", label: "Order", match: (path) => path.startsWith("/orders") },
+        { href: "#/chat", label: "Chat", match: (path) => path.startsWith("/chat") },
+      ]
     : shared;
 
   if (role === "seller") {

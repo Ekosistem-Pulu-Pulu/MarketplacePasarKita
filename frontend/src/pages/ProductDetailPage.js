@@ -1,4 +1,10 @@
-import { getProductById } from "../api/marketplaceApi.js";
+import {
+  addCartItem as addBackendCartItem,
+  createDiscussion,
+  getProductById,
+  listDiscussions,
+  listReviews,
+} from "../api/marketplaceApi.js";
 import { showToast } from "../components/Toast.js";
 import { addCartItem } from "../utils/cart.js";
 import { formatCurrency } from "../utils/currency.js";
@@ -9,6 +15,12 @@ import { escapeHtml, validateQuantity } from "../utils/validation.js";
 export async function render({ params }) {
   const response = await getProductById(params.id);
   const product = response.data;
+  const [reviewsResult, discussionsResult] = await Promise.allSettled([
+    listReviews(product.product_id),
+    listDiscussions(product.product_id),
+  ]);
+  const reviews = reviewsResult.status === "fulfilled" ? reviewsResult.value.data || [] : [];
+  const discussions = discussionsResult.status === "fulfilled" ? discussionsResult.value.data || [] : [];
   const preview = calculateCheckoutPreview(product.harga, 1);
   const disabled = product.stok <= 0 || !product.status_aktif;
   window.__pasarkitaDetailProduct = product;
@@ -16,7 +28,11 @@ export async function render({ params }) {
   return `
     <section class="detail-layout">
       <div class="detail-media card-panel" aria-hidden="true">
-        <span>${escapeHtml(product.kategori.slice(0, 2).toUpperCase())}</span>
+        ${
+          product.image_url
+            ? `<img src="${escapeHtml(product.image_url)}" alt="" />`
+            : `<span>${escapeHtml(product.kategori.slice(0, 2).toUpperCase())}</span>`
+        }
       </div>
 
       <article class="detail-panel card-panel">
@@ -40,6 +56,18 @@ export async function render({ params }) {
           <div>
             <dt>Seller</dt>
             <dd>${escapeHtml(product.seller_id)}</dd>
+          </div>
+          <div>
+            <dt>Toko</dt>
+            <dd>${product.store_id ? `<a href="#/stores/${escapeHtml(product.store_id)}">${escapeHtml(product.store_id)}</a>` : "-"}</dd>
+          </div>
+          <div>
+            <dt>Rating</dt>
+            <dd>${Number(product.rating_avg || 0).toFixed(1)} (${product.review_count || 0} ulasan)</dd>
+          </div>
+          <div>
+            <dt>Terjual</dt>
+            <dd>${product.sold_count || 0} item</dd>
           </div>
         </dl>
 
@@ -88,6 +116,49 @@ export async function render({ params }) {
         </div>
       </article>
     </section>
+
+    <section class="content-grid two-cols">
+      <article class="card-panel">
+        <h2>Ulasan pembeli</h2>
+        ${
+          reviews.length
+            ? reviews
+                .map(
+                  (review) => `
+                    <div class="review-row">
+                      <strong>${"★".repeat(Number(review.rating || 0))}</strong>
+                      <p>${escapeHtml(review.comment || "-")}</p>
+                      <small>${escapeHtml(review.user_id || "-")}</small>
+                    </div>
+                  `
+                )
+                .join("")
+            : `<p class="muted">Belum ada ulasan.</p>`
+        }
+      </article>
+
+      <article class="card-panel">
+        <h2>Diskusi produk</h2>
+        <form id="discussion-form" class="inline-form">
+          <input class="input" name="message" placeholder="Tanya seller soal produk" />
+          <button class="secondary-button" type="submit">Kirim</button>
+        </form>
+        ${
+          discussions.length
+            ? discussions
+                .map(
+                  (discussion) => `
+                    <div class="review-row">
+                      <p>${escapeHtml(discussion.message || "-")}</p>
+                      ${discussion.reply ? `<small>Seller: ${escapeHtml(discussion.reply)}</small>` : `<small>Menunggu jawaban seller</small>`}
+                    </div>
+                  `
+                )
+                .join("")
+            : `<p class="muted">Belum ada diskusi.</p>`
+        }
+      </article>
+    </section>
   `;
 }
 
@@ -124,7 +195,7 @@ export function afterRender({ params, navigate }) {
     navigate(isAuthenticated() ? target : `/login?redirect=${encodeURIComponent(target)}`);
   });
 
-  cartButton?.addEventListener("click", () => {
+  cartButton?.addEventListener("click", async () => {
     const qty = Number(input.value || 0);
     const validation = validateQuantity(qty, Number(input.dataset.stock || 0));
 
@@ -133,7 +204,24 @@ export function afterRender({ params, navigate }) {
       return;
     }
 
-    addCartItem(window.__pasarkitaDetailProduct, qty);
+    if (isAuthenticated()) {
+      await addBackendCartItem(window.__pasarkitaDetailProduct.product_id, qty);
+    } else {
+      addCartItem(window.__pasarkitaDetailProduct, qty);
+    }
     showToast("Produk masuk ke keranjang.");
+  });
+
+  document.querySelector("#discussion-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!isAuthenticated()) {
+      navigate(`/login?redirect=${encodeURIComponent(`/products/${params.id}`)}`);
+      return;
+    }
+    const message = String(new FormData(event.currentTarget).get("message") || "").trim();
+    if (!message) return;
+    await createDiscussion(params.id, message);
+    showToast("Pertanyaan produk terkirim.");
+    navigate(`/products/${params.id}`);
   });
 }

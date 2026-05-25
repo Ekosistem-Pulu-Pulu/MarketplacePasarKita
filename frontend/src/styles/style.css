@@ -624,6 +624,74 @@ label textarea:focus,
   box-shadow: var(--shadow-md);
 }
 
+.detail-media img,
+.product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.content-grid {
+  display: grid;
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.content-grid.two-cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.review-row {
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.review-row:last-child {
+  border-bottom: 0;
+}
+
+.inline-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.muted {
+  color: var(--slate-500);
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--slate-700);
+  font-weight: 700;
+}
+
+.store-card {
+  display: grid;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.store-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.order-card.unread {
+  border-color: var(--green-700);
+  background: var(--green-100);
+}
+
 .detail-panel,
 .checkout-summary,
 .checkout-form,
@@ -696,7 +764,8 @@ label textarea:focus,
   .catalog-hero,
   .seller-grid,
   .detail-layout,
-  .checkout-layout {
+  .checkout-layout,
+  .content-grid.two-cols {
     grid-template-columns: 1fr;
   }
 

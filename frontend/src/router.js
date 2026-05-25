@@ -9,6 +9,11 @@ import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
 import * as CartPage from "./pages/CartPage.js";
 import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
 import * as LoginPage from "./pages/LoginPage.js";
+import * as RegisterPage from "./pages/RegisterPage.js";
+import * as ProfilePage from "./pages/ProfilePage.js";
+import * as ChatPage from "./pages/ChatPage.js";
+import * as NotificationsPage from "./pages/NotificationsPage.js";
+import * as StorePage from "./pages/StorePage.js";
 import { getActiveRole, roleCanAccess } from "./utils/roles.js";
 import { isAuthenticated } from "./utils/storage.js";
 
@@ -20,6 +25,12 @@ const routes = [
   { pattern: /^\/products\/([^/]+)$/, page: ProductDetailPage, keys: ["id"] },
   { pattern: /^\/cart$/, page: CartPage },
   { pattern: /^\/login$/, page: LoginPage },
+  { pattern: /^\/register$/, page: RegisterPage },
+  { pattern: /^\/profile$/, page: ProfilePage, auth: true },
+  { pattern: /^\/chat$/, page: ChatPage, auth: true },
+  { pattern: /^\/notifications$/, page: NotificationsPage, auth: true },
+  { pattern: /^\/stores$/, page: StorePage },
+  { pattern: /^\/stores\/([^/]+)$/, page: StorePage, keys: ["id"] },
   { pattern: /^\/checkout$/, page: CheckoutPage, auth: true },
   { pattern: /^\/checkout\/([^/]+)$/, page: CheckoutPage, keys: ["id"], auth: true },
   { pattern: /^\/orders$/, page: OrderStatusPage, auth: true },

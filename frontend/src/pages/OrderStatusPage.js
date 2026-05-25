@@ -1,4 +1,4 @@
-import { getOrderStatus } from "../api/marketplaceApi.js";
+import { getOrderStatus, listOrders } from "../api/marketplaceApi.js";
 import { EmptyState } from "../components/EmptyState.js";
 import { StatusBadge, getStatusMeta } from "../components/StatusBadge.js";
 import { formatCurrency } from "../utils/currency.js";
@@ -20,11 +20,12 @@ function statusIndex(status) {
 }
 
 function orderCard(order) {
+  const firstItem = Array.isArray(order.items) ? order.items[0] : null;
   return `
     <article class="order-card">
       <div>
         <strong>${escapeHtml(order.order_id)}</strong>
-        <p>${escapeHtml(order.nama_produk || order.product_id || "Order marketplace")}</p>
+        <p>${escapeHtml(order.nama_produk || firstItem?.nama_produk || order.product_id || "Order marketplace")}</p>
       </div>
       <div class="order-card-side">
         ${StatusBadge(order.status_order)}
@@ -111,15 +112,24 @@ async function renderOrderDetail(orderId) {
   `;
 }
 
-function renderOrderList() {
-  const orders = getStoredOrders();
+async function renderOrderList() {
+  let orders = getStoredOrders();
+  try {
+    const response = await listOrders();
+    if (Array.isArray(response.data)) {
+      orders = response.data;
+      orders.forEach((order) => rememberOrder(order));
+    }
+  } catch {
+    // Stored browser orders are the fallback when backend is unavailable.
+  }
 
   return `
     <section class="page-title split-title">
       <div>
         <p class="eyebrow">Order</p>
         <h1>Daftar order terakhir</h1>
-        <p>Order yang dibuat dari browser ini disimpan untuk memudahkan tracking status.</p>
+        <p>Order diambil dari backend ketika login, lalu disimpan lokal sebagai fallback.</p>
       </div>
       <a class="secondary-button" href="#/products">Belanja lagi</a>
     </section>

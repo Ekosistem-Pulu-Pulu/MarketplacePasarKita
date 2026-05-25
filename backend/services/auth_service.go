@@ -9,6 +9,11 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
+
+	"pasarkita-marketplace-backend/models"
+	"pasarkita-marketplace-backend/repositories"
 )
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
@@ -46,12 +51,14 @@ type JWTClaims struct {
 
 type AuthService struct {
 	jwtSecret string
+	userRepo  *repositories.UserRepository
 	users     []DemoUser
 }
 
-func NewAuthService(jwtSecret string) *AuthService {
+func NewAuthService(jwtSecret string, userRepo *repositories.UserRepository) *AuthService {
 	return &AuthService{
 		jwtSecret: jwtSecret,
+		userRepo:  userRepo,
 		users: []DemoUser{
 			{UserID: "USR001", Name: "Raka Buyer", Email: "buyer@pasarkita.local", Role: "buyer", Password: "password123"},
 			{UserID: "SELLER001", Name: "Toko Sambal Roa", Email: "seller@pasarkita.local", Role: "seller", Password: "password123"},
@@ -66,6 +73,22 @@ func NewAuthService(jwtSecret string) *AuthService {
 }
 
 func (s *AuthService) DemoUsers() []DemoUser {
+	if s.userRepo != nil {
+		dbUsers, err := s.userRepo.ListPublic()
+		if err == nil && len(dbUsers) > 0 {
+			users := make([]DemoUser, 0, len(dbUsers))
+			for _, user := range dbUsers {
+				users = append(users, DemoUser{
+					UserID: user.UserID,
+					Name:   user.Name,
+					Email:  user.Email,
+					Role:   user.Role,
+				})
+			}
+			return users
+		}
+	}
+
 	users := make([]DemoUser, len(s.users))
 	copy(users, s.users)
 	for index := range users {
@@ -76,7 +99,7 @@ func (s *AuthService) DemoUsers() []DemoUser {
 
 func (s *AuthService) Login(input LoginInput) (*AuthResult, error) {
 	user, ok := s.findByEmail(input.Email)
-	if !ok || user.Password != input.Password {
+	if !ok || !s.passwordMatches(user, input.Password) {
 		return nil, ErrInvalidCredentials
 	}
 
@@ -103,6 +126,40 @@ func (s *AuthService) Login(input LoginInput) (*AuthResult, error) {
 		ExpiresAt: expiresAt,
 		User:      user,
 	}, nil
+}
+
+func (s *AuthService) Register(name, email, password, role, phone string) (*AuthResult, error) {
+	if s.userRepo == nil {
+		return nil, fmt.Errorf("user repository belum tersedia")
+	}
+	name = strings.TrimSpace(name)
+	email = strings.ToLower(strings.TrimSpace(email))
+	role = strings.TrimSpace(role)
+	if role == "" {
+		role = models.RoleBuyer
+	}
+	if name == "" || email == "" || strings.TrimSpace(password) == "" {
+		return nil, fmt.Errorf("%w: nama, email, dan password wajib diisi", ErrBadRequest)
+	}
+	if _, err := s.userRepo.FindByEmail(email); err == nil {
+		return nil, fmt.Errorf("%w: email sudah digunakan", ErrBadRequest)
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	user := &models.User{
+		UserID:       newUserID(),
+		Name:         name,
+		Email:        email,
+		PasswordHash: models.HashPassword(password, s.jwtSecret),
+		Role:         role,
+		Phone:        strings.TrimSpace(phone),
+		Status:       "ACTIVE",
+	}
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, err
+	}
+	return s.Login(LoginInput{Email: email, Password: password})
 }
 
 func (s *AuthService) ValidateToken(token string) (*JWTClaims, error) {
@@ -135,12 +192,32 @@ func (s *AuthService) ValidateToken(token string) (*JWTClaims, error) {
 }
 
 func (s *AuthService) findByEmail(email string) (DemoUser, bool) {
+	if s.userRepo != nil {
+		dbUser, err := s.userRepo.FindByEmail(email)
+		if err == nil {
+			return DemoUser{
+				UserID:   dbUser.UserID,
+				Name:     dbUser.Name,
+				Email:    dbUser.Email,
+				Role:     dbUser.Role,
+				Password: dbUser.PasswordHash,
+			}, true
+		}
+	}
+
 	for _, user := range s.users {
 		if strings.EqualFold(user.Email, strings.TrimSpace(email)) {
 			return user, true
 		}
 	}
 	return DemoUser{}, false
+}
+
+func (s *AuthService) passwordMatches(user DemoUser, password string) bool {
+	if len(user.Password) == 64 && user.Password == models.HashPassword(password, s.jwtSecret) {
+		return true
+	}
+	return user.Password == password
 }
 
 func (s *AuthService) signJWT(claims JWTClaims) (string, error) {
@@ -168,4 +245,8 @@ func (s *AuthService) sign(value string) string {
 	mac := hmac.New(sha256.New, []byte(s.jwtSecret))
 	mac.Write([]byte(value))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func newUserID() string {
+	return "USR" + fmt.Sprintf("%d", time.Now().UnixNano()%100000000)
 }

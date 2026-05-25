@@ -42,11 +42,16 @@ type BrowseParams struct {
 type ProductInput struct {
 	ProductID   string `json:"product_id"`
 	SellerID    string `json:"seller_id"`
+	StoreID     string `json:"store_id"`
 	NamaProduk  string `json:"nama_produk"`
 	Deskripsi   string `json:"deskripsi"`
 	Harga       int64  `json:"harga"`
 	Stok        int    `json:"stok"`
 	Kategori    string `json:"kategori"`
+	ImageURL    string `json:"image_url"`
+	BeratGram   int    `json:"berat_gram"`
+	Kondisi     string `json:"kondisi"`
+	Lokasi      string `json:"lokasi"`
 	StatusAktif *bool  `json:"status_aktif"`
 }
 
@@ -111,11 +116,22 @@ func (s *MarketplaceService) SaveProduct(input ProductInput) (*models.Product, e
 	}
 
 	product.SellerID = input.SellerID
+	product.StoreID = input.StoreID
 	product.NamaProduk = input.NamaProduk
 	product.Deskripsi = input.Deskripsi
 	product.Harga = input.Harga
 	product.Stok = input.Stok
 	product.Kategori = input.Kategori
+	product.ImageURL = input.ImageURL
+	product.BeratGram = input.BeratGram
+	if product.BeratGram <= 0 {
+		product.BeratGram = 500
+	}
+	product.Kondisi = strings.TrimSpace(input.Kondisi)
+	if product.Kondisi == "" {
+		product.Kondisi = "Baru"
+	}
+	product.Lokasi = input.Lokasi
 	product.StatusAktif = statusAktif
 
 	if err := s.products.Save(product); err != nil {
@@ -203,6 +219,8 @@ func (s *MarketplaceService) Checkout(input CheckoutInput, authorization string)
 			{
 				OrderIDRef: orderID,
 				ProductID:  product.ProductID,
+				SellerID:   product.SellerID,
+				StoreID:    product.StoreID,
 				NamaProduk: product.NamaProduk,
 				Harga:      product.Harga,
 				Qty:        input.Qty,

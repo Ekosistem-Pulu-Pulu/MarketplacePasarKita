@@ -57,10 +57,13 @@ export function Navbar(currentPath = "/products") {
                 <span class="session-chip" title="${escapeHtml(user.email)}">
                   ${escapeHtml(user.name)}
                 </span>
+                <a class="text-button" href="#/notifications">Notif</a>
+                <a class="text-button" href="#/profile">Profil</a>
                 <button class="text-button" type="button" id="logout-button">Logout</button>
               `
               : `
                 <a class="secondary-button small" href="#/login">Login</a>
+                <a class="text-button" href="#/register">Daftar</a>
                 <label class="role-switcher">
                   <span>Preview</span>
                   <select id="role-switcher" aria-label="Pilih preview role">

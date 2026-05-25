@@ -96,6 +96,58 @@ export async function checkout(payload) {
   );
 }
 
+export async function getCart() {
+  return apiRequest("/marketplace/cart");
+}
+
+export async function addCartItem(productId, qty = 1) {
+  return apiRequest("/marketplace/cart", {
+    method: "POST",
+    body: { product_id: productId, qty },
+  });
+}
+
+export async function updateCartItem(productId, payload) {
+  return apiRequest(`/marketplace/cart/${encodeURIComponent(productId)}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export async function removeCartItem(productId) {
+  return apiRequest(`/marketplace/cart/${encodeURIComponent(productId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function checkoutCart(payload) {
+  return normalizeOrder(
+    await apiRequest("/marketplace/cart/checkout", {
+      method: "POST",
+      body: payload,
+    })
+  );
+}
+
+export async function listOrders() {
+  const response = await apiRequest("/marketplace/orders");
+  return { status: response.status || "success", data: response.data || [] };
+}
+
+export async function listSellerOrders() {
+  const response = await apiRequest("/marketplace/seller/orders");
+  return { status: response.status || "success", data: response.data || [] };
+}
+
+export async function cancelOrder(orderId, reason = "") {
+  return normalizeOrder(
+    await apiRequest(`/marketplace/orders/${encodeURIComponent(orderId)}/cancel`, {
+      method: "PATCH",
+      body: { reason },
+    })
+  );
+}
+
 export async function getOrderStatus(orderId) {
   const query = new URLSearchParams({ order_id: orderId });
   return normalizeOrder(
@@ -117,4 +169,76 @@ export async function calculateMarketplaceFee(subtotal) {
       },
     };
   }
+}
+
+export async function listStores() {
+  return apiRequest("/marketplace/stores");
+}
+
+export async function getStore(storeId) {
+  return apiRequest(`/marketplace/stores/${encodeURIComponent(storeId)}`);
+}
+
+export async function getMyStore() {
+  return apiRequest("/marketplace/stores/me");
+}
+
+export async function listVouchers() {
+  return apiRequest("/marketplace/vouchers");
+}
+
+export async function applyVoucher(code, subtotal) {
+  const query = new URLSearchParams({ subtotal: String(subtotal || 0) });
+  return apiRequest(`/marketplace/vouchers/${encodeURIComponent(code)}/apply?${query.toString()}`);
+}
+
+export async function getShippingOptions(params = {}) {
+  const query = new URLSearchParams({
+    product_id: params.product_id || "",
+    qty: String(params.qty || 1),
+  });
+  return apiRequest(`/marketplace/shipping/options?${query.toString()}`);
+}
+
+export async function listReviews(productId) {
+  return apiRequest(`/marketplace/products/${encodeURIComponent(productId)}/reviews`);
+}
+
+export async function createReview(productId, payload) {
+  return apiRequest(`/marketplace/products/${encodeURIComponent(productId)}/reviews`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function listDiscussions(productId) {
+  return apiRequest(`/marketplace/products/${encodeURIComponent(productId)}/discussions`);
+}
+
+export async function createDiscussion(productId, message) {
+  return apiRequest(`/marketplace/products/${encodeURIComponent(productId)}/discussions`, {
+    method: "POST",
+    body: { message },
+  });
+}
+
+export async function listChat() {
+  return apiRequest("/marketplace/chat");
+}
+
+export async function sendChat(payload) {
+  return apiRequest("/marketplace/chat", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function listNotifications() {
+  return apiRequest("/marketplace/notifications");
+}
+
+export async function markNotificationRead(notificationId) {
+  return apiRequest(`/marketplace/notifications/${encodeURIComponent(notificationId)}/read`, {
+    method: "PATCH",
+  });
 }

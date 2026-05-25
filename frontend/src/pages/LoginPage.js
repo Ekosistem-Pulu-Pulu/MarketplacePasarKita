@@ -63,6 +63,7 @@ export async function render({ query }) {
         </label>
         <input type="hidden" name="redirect" value="${escapeHtml(redirectTo)}" />
         <button class="primary-button block" type="submit">Login</button>
+        <a class="auth-secondary-action" href="#/register">Daftar akun buyer/seller</a>
         <a class="auth-secondary-action" href="#/products">Lihat katalog sebagai guest</a>
       </form>
     </section>
