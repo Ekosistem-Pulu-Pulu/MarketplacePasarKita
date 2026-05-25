@@ -3,6 +3,7 @@ import { showToast } from "../components/Toast.js";
 import { addCartItem } from "../utils/cart.js";
 import { formatCurrency } from "../utils/currency.js";
 import { calculateCheckoutPreview } from "../utils/feeCalculator.js";
+import { isAuthenticated } from "../utils/storage.js";
 import { escapeHtml, validateQuantity } from "../utils/validation.js";
 
 export async function render({ params }) {
@@ -119,7 +120,8 @@ export function afterRender({ params, navigate }) {
       return;
     }
 
-    navigate(`/checkout/${params.id}?qty=${qty}`);
+    const target = `/checkout/${params.id}?qty=${qty}`;
+    navigate(isAuthenticated() ? target : `/login?redirect=${encodeURIComponent(target)}`);
   });
 
   cartButton?.addEventListener("click", () => {

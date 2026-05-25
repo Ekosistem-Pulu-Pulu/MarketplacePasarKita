@@ -9,7 +9,7 @@ import (
 	"pasarkita-marketplace-backend/repositories"
 )
 
-func Register(app *fiber.App, cfg config.Config, marketplace *controllers.MarketplaceController, auditRepo *repositories.AuditLogRepository) {
+func Register(app *fiber.App, cfg config.Config, marketplace *controllers.MarketplaceController, auth *controllers.AuthController, auditRepo *repositories.AuditLogRepository) {
 	app.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.JSON(fiber.Map{
 			"service": "Marketplace PasarKita",
@@ -41,6 +41,11 @@ func Register(app *fiber.App, cfg config.Config, marketplace *controllers.Market
 		}
 		return ctx.JSON(fiber.Map{"status": "success", "data": logs})
 	})
+
+	authGroup := app.Group("/auth")
+	authGroup.Post("/login", auth.Login)
+	authGroup.Get("/me", auth.Me)
+	authGroup.Get("/demo-users", auth.DemoUsers)
 
 	marketplaceGroup := app.Group("/marketplace", middleware.OptionalAuth(cfg), middleware.RequestLogger(auditRepo))
 	marketplaceGroup.Get("/browse_produk", marketplace.BrowseProducts)

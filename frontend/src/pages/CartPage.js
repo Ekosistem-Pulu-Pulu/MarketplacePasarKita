@@ -6,6 +6,7 @@ import {
   updateCartItem,
 } from "../utils/cart.js";
 import { formatCurrency } from "../utils/currency.js";
+import { isAuthenticated } from "../utils/storage.js";
 import { escapeHtml } from "../utils/validation.js";
 
 function cartItemTemplate(item) {
@@ -50,6 +51,11 @@ export async function render() {
   const items = getCartItems();
   const selectedItems = items.filter((item) => item.selected && item.status_aktif);
   const summary = calculateCartSummary(selectedItems);
+  const checkoutHref = selectedItems.length
+    ? isAuthenticated()
+      ? "#/checkout"
+      : `#/login?redirect=${encodeURIComponent("/checkout")}`
+    : "#/cart";
 
   return `
     <section class="page-title split-title">
@@ -74,7 +80,7 @@ export async function render() {
               <div class="summary-total"><span>Total</span><strong>${formatCurrency(summary.total_bayar)}</strong></div>
               <a
                 class="primary-button block ${selectedItems.length ? "" : "disabled-link"}"
-                href="${selectedItems.length ? "#/checkout" : "#/cart"}"
+                href="${checkoutHref}"
               >
                 Checkout item dipilih
               </a>

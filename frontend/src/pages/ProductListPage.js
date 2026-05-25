@@ -3,6 +3,7 @@ import { EmptyState } from "../components/EmptyState.js";
 import { showToast } from "../components/Toast.js";
 import { browseProducts } from "../api/marketplaceApi.js";
 import { addCartItem } from "../utils/cart.js";
+import { isAuthenticated } from "../utils/storage.js";
 import { escapeHtml } from "../utils/validation.js";
 
 const categoryOptions = ["Semua", "Makanan", "Minuman", "Kesehatan", "Kerajinan", "Fashion"];
@@ -139,7 +140,8 @@ export function afterRender({ navigate, renderRoute }) {
 
   document.querySelectorAll("[data-checkout-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      navigate(`/checkout/${button.dataset.checkoutId}?qty=1`);
+      const target = `/checkout/${button.dataset.checkoutId}?qty=1`;
+      navigate(isAuthenticated() ? target : `/login?redirect=${encodeURIComponent(target)}`);
     });
   });
 

@@ -8,6 +8,9 @@ import * as OrderStatusPage from "./pages/OrderStatusPage.js";
 import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
 import * as CartPage from "./pages/CartPage.js";
 import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
+import * as LoginPage from "./pages/LoginPage.js";
+import { getActiveRole, roleCanAccess } from "./utils/roles.js";
+import { isAuthenticated } from "./utils/storage.js";
 
 let navbarRoot;
 let viewRoot;
@@ -16,17 +19,18 @@ const routes = [
   { pattern: /^\/products$/, page: ProductListPage },
   { pattern: /^\/products\/([^/]+)$/, page: ProductDetailPage, keys: ["id"] },
   { pattern: /^\/cart$/, page: CartPage },
-  { pattern: /^\/checkout$/, page: CheckoutPage },
-  { pattern: /^\/checkout\/([^/]+)$/, page: CheckoutPage, keys: ["id"] },
-  { pattern: /^\/orders$/, page: OrderStatusPage },
-  { pattern: /^\/orders\/([^/]+)$/, page: OrderStatusPage, keys: ["id"] },
-  { pattern: /^\/seller\/products$/, page: SellerDashboardPage },
-  { pattern: /^\/support$/, page: InternalDashboardPage, params: { area: "support" } },
-  { pattern: /^\/finance$/, page: InternalDashboardPage, params: { area: "finance" } },
-  { pattern: /^\/fulfillment$/, page: InternalDashboardPage, params: { area: "fulfillment" } },
-  { pattern: /^\/admin\/catalog$/, page: InternalDashboardPage, params: { area: "catalog" } },
-  { pattern: /^\/admin\/platform$/, page: InternalDashboardPage, params: { area: "platform" } },
-  { pattern: /^\/admin\/tech$/, page: InternalDashboardPage, params: { area: "tech" } },
+  { pattern: /^\/login$/, page: LoginPage },
+  { pattern: /^\/checkout$/, page: CheckoutPage, auth: true },
+  { pattern: /^\/checkout\/([^/]+)$/, page: CheckoutPage, keys: ["id"], auth: true },
+  { pattern: /^\/orders$/, page: OrderStatusPage, auth: true },
+  { pattern: /^\/orders\/([^/]+)$/, page: OrderStatusPage, keys: ["id"], auth: true },
+  { pattern: /^\/seller\/products$/, page: SellerDashboardPage, auth: true, roles: ["seller"] },
+  { pattern: /^\/support$/, page: InternalDashboardPage, params: { area: "support" }, auth: true, roles: ["customer_support", "platform_admin"] },
+  { pattern: /^\/finance$/, page: InternalDashboardPage, params: { area: "finance" }, auth: true, roles: ["finance_ops", "platform_admin"] },
+  { pattern: /^\/fulfillment$/, page: InternalDashboardPage, params: { area: "fulfillment" }, auth: true, roles: ["fulfillment_ops", "platform_admin"] },
+  { pattern: /^\/admin\/catalog$/, page: InternalDashboardPage, params: { area: "catalog" }, auth: true, roles: ["catalog_admin", "platform_admin"] },
+  { pattern: /^\/admin\/platform$/, page: InternalDashboardPage, params: { area: "platform" }, auth: true, roles: ["platform_admin"] },
+  { pattern: /^\/admin\/tech$/, page: InternalDashboardPage, params: { area: "tech" }, auth: true, roles: ["tech_maintainer", "platform_admin"] },
 ];
 
 function parseHash() {
@@ -76,6 +80,24 @@ export async function renderRoute() {
 
   if (!matched) {
     navigate("/products");
+    return;
+  }
+
+  if (matched.route.auth && !isAuthenticated()) {
+    navigate(`/login?redirect=${encodeURIComponent(path + (query.toString() ? `?${query.toString()}` : ""))}`);
+    return;
+  }
+
+  if (matched.route.roles && !roleCanAccess(getActiveRole(), matched.route.roles)) {
+    viewRoot.innerHTML = `
+      <section class="error-state card-panel">
+        <p class="eyebrow">Akses role ditolak</p>
+        <h1>Role aktif tidak punya akses ke halaman ini</h1>
+        <p>Login menggunakan akun dengan role yang sesuai untuk membuka dashboard ini.</p>
+        <a class="primary-button" href="#/login?redirect=${encodeURIComponent(path)}">Ganti akun</a>
+        <a class="secondary-button" href="#/products">Kembali ke katalog</a>
+      </section>
+    `;
     return;
   }
 

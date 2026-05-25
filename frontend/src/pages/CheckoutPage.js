@@ -1,4 +1,3 @@
-import { DEFAULT_USER_ID } from "../config/apiConfig.js";
 import { checkout, getProductById } from "../api/marketplaceApi.js";
 import { showToast } from "../components/Toast.js";
 import { EmptyState } from "../components/EmptyState.js";
@@ -6,6 +5,7 @@ import { calculateCartSummary, clearCartItems, getSelectedCartItems } from "../u
 import { formatCurrency } from "../utils/currency.js";
 import { calculateCheckoutPreview } from "../utils/feeCalculator.js";
 import { rememberOrder } from "../utils/orders.js";
+import { getCurrentUser } from "../utils/storage.js";
 import { escapeHtml, validateAddress, validateQuantity } from "../utils/validation.js";
 
 function checkoutItemTemplate(item) {
@@ -69,6 +69,7 @@ export async function render({ params, query }) {
   }
 
   const items = result.items;
+  const user = getCurrentUser();
   const summary =
     items.length === 1
       ? calculateCheckoutPreview(items[0].harga, items[0].qty)
@@ -106,7 +107,8 @@ export async function render({ params, query }) {
         </label>
 
         <div class="smartbank-note">
-          Sistem membuat ${items.length} checkout request. Untuk cart multi-produk,
+          Checkout dibuat atas nama <strong>${escapeHtml(user?.name || "User")}</strong>
+          (${escapeHtml(user?.user_id || "-")}). Sistem membuat ${items.length} checkout request. Untuk cart multi-produk,
           request dikirim per produk agar tetap kompatibel dengan endpoint backend saat ini.
         </div>
 
@@ -143,7 +145,13 @@ export function afterRender({ params, navigate }) {
     }
 
     const items = window.__pasarkitaCheckoutItems || [];
+    const user = getCurrentUser();
     if (!items.length) return;
+    if (!user?.user_id) {
+      showToast("Login dibutuhkan untuk checkout.", "error");
+      navigate("/login");
+      return;
+    }
 
     button.disabled = true;
     button.textContent = "Mengirim order...";
@@ -154,7 +162,7 @@ export function afterRender({ params, navigate }) {
       for (const item of items) {
         const fallbackPreview = calculateCheckoutPreview(item.harga, item.qty);
         const response = await checkout({
-          user_id: DEFAULT_USER_ID,
+          user_id: user.user_id,
           product_id: item.product_id,
           qty: Number(item.qty),
           alamat_pengiriman,

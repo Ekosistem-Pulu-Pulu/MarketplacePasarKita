@@ -1,3 +1,5 @@
+import { getCurrentUser, isAuthenticated } from "./storage.js";
+
 const ROLE_KEY = "pasarkita_active_role";
 
 export const ROLE_DEFINITIONS = {
@@ -49,6 +51,10 @@ export const ROLE_OPTIONS = Object.entries(ROLE_DEFINITIONS).map(([value, role])
 }));
 
 export function getActiveRole() {
+  if (isAuthenticated()) {
+    return getCurrentUser()?.role || "buyer";
+  }
+
   const stored = window.localStorage.getItem(ROLE_KEY);
   return ROLE_DEFINITIONS[stored] ? stored : "buyer";
 }
@@ -67,12 +73,15 @@ export function getRoleNavItems(role = getActiveRole()) {
   const shared = [
     { href: "#/products", label: "Produk", match: (path) => path.startsWith("/products") },
     { href: "#/cart", label: "Keranjang", match: (path) => path === "/cart" },
-    { href: "#/orders", label: "Order", match: (path) => path.startsWith("/orders") },
   ];
+
+  const authenticatedShared = isAuthenticated()
+    ? [...shared, { href: "#/orders", label: "Order", match: (path) => path.startsWith("/orders") }]
+    : shared;
 
   if (role === "seller") {
     return [
-      ...shared,
+      ...authenticatedShared,
       {
         href: "#/seller/products",
         label: "Seller Center",
@@ -93,11 +102,16 @@ export function getRoleNavItems(role = getActiveRole()) {
   const internal = internalNav[role];
   return internal
     ? [
-        ...shared,
+        ...authenticatedShared,
         {
           ...internal,
           match: (path) => path === internal.href.replace("#", ""),
         },
       ]
-    : shared;
+    : authenticatedShared;
+}
+
+export function roleCanAccess(role, allowedRoles = []) {
+  if (!allowedRoles.length) return true;
+  return allowedRoles.includes(role);
 }

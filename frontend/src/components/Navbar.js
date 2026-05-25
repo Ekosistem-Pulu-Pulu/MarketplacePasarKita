@@ -7,6 +7,7 @@ import {
   ROLE_OPTIONS,
   setActiveRole,
 } from "../utils/roles.js";
+import { getCurrentUser, isAuthenticated, logout } from "../utils/storage.js";
 import { escapeHtml } from "../utils/validation.js";
 
 export function Navbar(currentPath = "/products") {
@@ -14,6 +15,8 @@ export function Navbar(currentPath = "/products") {
   const role = ROLE_DEFINITIONS[activeRole];
   const navItems = getRoleNavItems(activeRole);
   const cartCount = getCartCount();
+  const user = getCurrentUser();
+  const loggedIn = isAuthenticated();
 
   return `
     <header class="topbar">
@@ -48,18 +51,30 @@ export function Navbar(currentPath = "/products") {
             Keranjang
             <span>${cartCount}</span>
           </a>
-          <label class="role-switcher">
-            <span>Role</span>
-            <select id="role-switcher" aria-label="Pilih role aktif">
-              ${ROLE_OPTIONS.map(
-                (option) => `
-                  <option value="${option.value}" ${option.value === activeRole ? "selected" : ""}>
-                    ${option.label}
-                  </option>
-                `
-              ).join("")}
-            </select>
-          </label>
+          ${
+            loggedIn
+              ? `
+                <span class="session-chip" title="${escapeHtml(user.email)}">
+                  ${escapeHtml(user.name)}
+                </span>
+                <button class="text-button" type="button" id="logout-button">Logout</button>
+              `
+              : `
+                <a class="secondary-button small" href="#/login">Login</a>
+                <label class="role-switcher">
+                  <span>Preview</span>
+                  <select id="role-switcher" aria-label="Pilih preview role">
+                    ${ROLE_OPTIONS.map(
+                      (option) => `
+                        <option value="${option.value}" ${option.value === activeRole ? "selected" : ""}>
+                          ${option.label}
+                        </option>
+                      `
+                    ).join("")}
+                  </select>
+                </label>
+              `
+          }
           <a class="gateway-chip" href="#${getRoleHome(activeRole)}" title="${escapeHtml(role.description)}">
             ${escapeHtml(role.label)}
           </a>
@@ -76,6 +91,11 @@ export function Navbar(currentPath = "/products") {
             `
           )
           .join("")}
+        ${
+          loggedIn
+            ? `<button type="button" id="mobile-logout-button">Logout</button>`
+            : `<a class="${currentPath === "/login" ? "active" : ""}" href="#/login">Login</a>`
+        }
       </nav>
     </header>
   `;
@@ -91,6 +111,18 @@ export function bindNavbar({ navigate, renderRoute }) {
   document.querySelector("#role-switcher")?.addEventListener("change", (event) => {
     const nextRole = setActiveRole(event.currentTarget.value);
     navigate(getRoleHome(nextRole));
+    renderRoute();
+  });
+
+  document.querySelector("#logout-button")?.addEventListener("click", () => {
+    logout();
+    navigate("/products");
+    renderRoute();
+  });
+
+  document.querySelector("#mobile-logout-button")?.addEventListener("click", () => {
+    logout();
+    navigate("/products");
     renderRoute();
   });
 }

@@ -3187,6 +3187,31 @@ p {
   font-size: 11px;
 }
 
+.session-chip {
+  display: inline-flex;
+  max-width: 160px;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  color: var(--slate-800);
+  font-size: 13px;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-nav button {
+  border: 0;
+  background: transparent;
+  color: var(--slate-600);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 9px 12px;
+}
+
 .product-actions-stacked {
   justify-content: flex-end;
   flex-wrap: wrap;

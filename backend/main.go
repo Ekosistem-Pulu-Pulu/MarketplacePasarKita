@@ -53,10 +53,12 @@ func main() {
 	auditRepo := repositories.NewAuditLogRepository(db)
 
 	integrationService := services.NewIntegrationService(cfg)
+	authService := services.NewAuthService(cfg.JWTSecret)
 	marketplaceService := services.NewMarketplaceService(productRepo, orderRepo, auditRepo, integrationService)
+	authController := controllers.NewAuthController(authService)
 	marketplaceController := controllers.NewMarketplaceController(marketplaceService)
 
-	routes.Register(app, cfg, marketplaceController, auditRepo)
+	routes.Register(app, cfg, marketplaceController, authController, auditRepo)
 
 	log.Printf("Marketplace PasarKita API running on :%s", cfg.AppPort)
 	log.Fatal(app.Listen(":" + cfg.AppPort))
