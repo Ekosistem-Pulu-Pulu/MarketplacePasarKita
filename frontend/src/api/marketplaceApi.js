@@ -1,5 +1,4 @@
 import { apiRequest } from "./client.js";
-import { calculateCheckoutPreview } from "../utils/feeCalculator.js";
 
 function normalizeProductList(response) {
   const data = response?.data ?? response;
@@ -156,19 +155,8 @@ export async function getOrderStatus(orderId) {
 }
 
 export async function calculateMarketplaceFee(subtotal) {
-  try {
-    const query = new URLSearchParams({ subtotal: String(subtotal) });
-    return await apiRequest(
-      `/marketplace/biaya_layanan_marketplace?${query.toString()}`
-    );
-  } catch {
-    return {
-      status: "success",
-      data: {
-        marketplace_fee: calculateCheckoutPreview(Number(subtotal), 1).marketplace_fee,
-      },
-    };
-  }
+  const query = new URLSearchParams({ subtotal: String(subtotal) });
+  return apiRequest(`/marketplace/biaya_layanan_marketplace?${query.toString()}`);
 }
 
 export async function listStores() {

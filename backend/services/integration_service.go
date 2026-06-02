@@ -48,7 +48,7 @@ func (s *IntegrationService) SendPaymentRequest(req PaymentRequest, authorizatio
 		return PaymentResult{
 			PaymentRequestID: fmt.Sprintf("PAYREQ-%d", time.Now().UnixNano()),
 			Status:           "PENDING_PAYMENT",
-			GatewayFee:       calculateGatewayFee(req.Amount),
+			GatewayFee:       CalculateGatewayFee(req.Amount),
 			Message:          "mock payment request created; marketplace does not mutate saldo",
 		}
 	}
@@ -78,11 +78,11 @@ func (s *IntegrationService) SendPaymentRequest(req PaymentRequest, authorizatio
 	return PaymentResult{
 		PaymentRequestID: fmt.Sprintf("PAYREQ-%d", time.Now().UnixNano()),
 		Status:           "PAYMENT_PROCESSING",
-		GatewayFee:       calculateGatewayFee(req.Amount),
+		GatewayFee:       CalculateGatewayFee(req.Amount),
 		Message:          "payment request forwarded to API Gateway",
 	}
 }
 
-func calculateGatewayFee(amount int64) int64 {
+func CalculateGatewayFee(amount int64) int64 {
 	return amount * 5 / 1000
 }

@@ -1,51 +1,37 @@
-import { formatCurrency } from "../utils/currency.js";
+import { formatCurrency } from "../utils/formatCurrency.js";
 import { escapeHtml } from "../utils/validation.js";
 
 export function ProductCard(product) {
-  const disabled = product.stok <= 0 || !product.status_aktif;
+  const discountLabel = product.discount ? `${product.discount}%` : "";
 
   return `
     <article class="product-card">
-      <div class="product-media" aria-hidden="true">
-        ${
-          product.image_url
-            ? `<img src="${escapeHtml(product.image_url)}" alt="" />`
-            : `<span class="product-initial">${escapeHtml(product.kategori.slice(0, 2).toUpperCase())}</span>`
-        }
-        <span class="product-category">${escapeHtml(product.kategori)}</span>
-      </div>
-      <div class="product-body">
-        <div class="product-meta">
-          <span class="pill">${escapeHtml(product.kategori)}</span>
-          <span class="${product.stok === 0 ? "stock-empty" : ""}">
-            ${product.stok === 0 ? "Stok habis" : `Stok ${product.stok}`}
-          </span>
+      <a class="product-image-link" href="#/products/${escapeHtml(product.id)}" aria-label="${escapeHtml(product.name)}">
+        <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" loading="lazy" />
+        ${discountLabel ? `<span class="discount-badge">${discountLabel}</span>` : ""}
+      </a>
+
+      <div class="product-card-body">
+        <div class="product-card-meta">
+          <span class="category-chip">${escapeHtml(product.category)}</span>
+          <span class="rating-line"><span data-lucide="star"></span>${product.rating.toFixed(1)}</span>
         </div>
-        <h3>${escapeHtml(product.nama_produk)}</h3>
-        <p>${escapeHtml(product.deskripsi)}</p>
-        <div class="product-footer">
-          <strong>${formatCurrency(product.harga)}</strong>
-          <div class="product-actions product-actions-stacked">
-            <a class="secondary-button small" href="#/products/${product.product_id}">
-              Detail
-            </a>
-            <button
-              class="secondary-button small"
-              type="button"
-              data-add-cart-id="${product.product_id}"
-              ${disabled ? "disabled" : ""}
-            >
-              Keranjang
-            </button>
-            <button
-              class="primary-button small"
-              type="button"
-              data-checkout-id="${product.product_id}"
-              ${disabled ? "disabled" : ""}
-            >
-              Checkout
-            </button>
-          </div>
+
+        <a class="product-title" href="#/products/${escapeHtml(product.id)}">${escapeHtml(product.name)}</a>
+        <strong class="product-price">${formatCurrency(product.price)}</strong>
+
+        <div class="product-store-line">
+          <span data-lucide="map-pin"></span>
+          <span>${escapeHtml(product.store.location)}</span>
+          <span>${product.sold} terjual</span>
+        </div>
+
+        <div class="product-card-actions">
+          <a class="btn btn-secondary" href="#/products/${escapeHtml(product.id)}">Detail</a>
+          <button class="btn btn-primary" type="button" data-add-cart="${escapeHtml(product.id)}">
+            <span data-lucide="plus"></span>
+            Keranjang
+          </button>
         </div>
       </div>
     </article>

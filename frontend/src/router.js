@@ -1,56 +1,45 @@
-import { bindNavbar, Navbar } from "./components/Navbar.js";
-import { Loading } from "./components/Loading.js";
+import { Footer } from "./components/Footer.js";
+import { Header } from "./components/Header.js";
 import { showToast } from "./components/Toast.js";
-import * as ProductListPage from "./pages/ProductListPage.js";
-import * as ProductDetailPage from "./pages/ProductDetailPage.js";
-import * as CheckoutPage from "./pages/CheckoutPage.js";
-import * as OrderStatusPage from "./pages/OrderStatusPage.js";
-import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
+import { renderIcons } from "./icons.js";
 import * as CartPage from "./pages/CartPage.js";
-import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
+import * as CheckoutPage from "./pages/CheckoutPage.js";
+import * as HomePage from "./pages/HomePage.js";
 import * as LoginPage from "./pages/LoginPage.js";
+import * as OrdersPage from "./pages/OrdersPage.js";
+import * as ProductDetailPage from "./pages/ProductDetailPage.js";
 import * as RegisterPage from "./pages/RegisterPage.js";
-import * as ProfilePage from "./pages/ProfilePage.js";
-import * as ChatPage from "./pages/ChatPage.js";
-import * as NotificationsPage from "./pages/NotificationsPage.js";
-import * as StorePage from "./pages/StorePage.js";
-import { getActiveRole, roleCanAccess } from "./utils/roles.js";
-import { isAuthenticated } from "./utils/storage.js";
+import * as SellerPage from "./pages/SellerPage.js";
+import { requireAuth, requireRole } from "./app/guards.js";
+import { getCartCountSnapshot } from "./services/cartService.js";
+import { logoutUser } from "./services/authService.js";
+import { getCurrentUser } from "./utils/storage.js";
+import { escapeHtml } from "./utils/validation.js";
 
-let navbarRoot;
+let headerRoot;
 let viewRoot;
+let footerRoot;
 
 const routes = [
-  { pattern: /^\/products$/, page: ProductListPage },
+  { pattern: /^\/$/, page: HomePage },
+  { pattern: /^\/products$/, page: HomePage },
   { pattern: /^\/products\/([^/]+)$/, page: ProductDetailPage, keys: ["id"] },
   { pattern: /^\/cart$/, page: CartPage },
+  { pattern: /^\/checkout$/, page: CheckoutPage, guard: requireAuth },
   { pattern: /^\/login$/, page: LoginPage },
   { pattern: /^\/register$/, page: RegisterPage },
-  { pattern: /^\/profile$/, page: ProfilePage, auth: true },
-  { pattern: /^\/chat$/, page: ChatPage, auth: true },
-  { pattern: /^\/notifications$/, page: NotificationsPage, auth: true },
-  { pattern: /^\/stores$/, page: StorePage },
-  { pattern: /^\/stores\/([^/]+)$/, page: StorePage, keys: ["id"] },
-  { pattern: /^\/checkout$/, page: CheckoutPage, auth: true },
-  { pattern: /^\/checkout\/([^/]+)$/, page: CheckoutPage, keys: ["id"], auth: true },
-  { pattern: /^\/orders$/, page: OrderStatusPage, auth: true },
-  { pattern: /^\/orders\/([^/]+)$/, page: OrderStatusPage, keys: ["id"], auth: true },
-  { pattern: /^\/seller\/products$/, page: SellerDashboardPage, auth: true, roles: ["seller"] },
-  { pattern: /^\/support$/, page: InternalDashboardPage, params: { area: "support" }, auth: true, roles: ["customer_support", "platform_admin"] },
-  { pattern: /^\/finance$/, page: InternalDashboardPage, params: { area: "finance" }, auth: true, roles: ["finance_ops", "platform_admin"] },
-  { pattern: /^\/fulfillment$/, page: InternalDashboardPage, params: { area: "fulfillment" }, auth: true, roles: ["fulfillment_ops", "platform_admin"] },
-  { pattern: /^\/admin\/catalog$/, page: InternalDashboardPage, params: { area: "catalog" }, auth: true, roles: ["catalog_admin", "platform_admin"] },
-  { pattern: /^\/admin\/platform$/, page: InternalDashboardPage, params: { area: "platform" }, auth: true, roles: ["platform_admin"] },
-  { pattern: /^\/admin\/tech$/, page: InternalDashboardPage, params: { area: "tech" }, auth: true, roles: ["tech_maintainer", "platform_admin"] },
+  { pattern: /^\/orders$/, page: OrdersPage, guard: requireAuth },
+  { pattern: /^\/orders\/([^/]+)$/, page: OrdersPage, keys: ["id"], guard: requireAuth },
+  { pattern: /^\/seller$/, page: SellerPage, guard: (path) => requireRole(path, ["seller"]) },
 ];
 
 function parseHash() {
-  const hash = window.location.hash || "#/products";
+  const hash = window.location.hash || "#/";
   const raw = hash.startsWith("#") ? hash.slice(1) : hash;
-  const [path, queryString = ""] = raw.split("?");
+  const [path = "/", queryString = ""] = raw.split("?");
 
   return {
-    path: path || "/products",
+    path: path || "/",
     query: new URLSearchParams(queryString),
   };
 }
@@ -60,7 +49,7 @@ function matchRoute(path) {
     const match = path.match(route.pattern);
     if (!match) continue;
 
-    const params = { ...(route.params || {}) };
+    const params = {};
     (route.keys || []).forEach((key, index) => {
       params[key] = decodeURIComponent(match[index + 1]);
     });
@@ -82,42 +71,63 @@ export function navigate(path) {
   window.location.hash = target;
 }
 
+export function buildProductQuery(values) {
+  const params = new URLSearchParams();
+
+  Object.entries(values).forEach(([key, value]) => {
+    const cleanValue = String(value || "").trim();
+    if (cleanValue) params.set(key, cleanValue);
+  });
+
+  const query = params.toString();
+  return query ? `/products?${query}` : "/products";
+}
+
 export async function renderRoute() {
   const { path, query } = parseHash();
   const matched = matchRoute(path);
 
-  navbarRoot.innerHTML = Navbar(path);
-  bindNavbar({ navigate, renderRoute });
+  headerRoot.innerHTML = Header({
+    activePath: path,
+    keyword: query.get("q") || "",
+    cartCount: getCartCountSnapshot(),
+    user: getCurrentUser(),
+  });
+  footerRoot.innerHTML = Footer();
 
   if (!matched) {
-    navigate("/products");
-    return;
-  }
-
-  if (matched.route.auth && !isAuthenticated()) {
-    navigate(`/login?redirect=${encodeURIComponent(path + (query.toString() ? `?${query.toString()}` : ""))}`);
-    return;
-  }
-
-  if (matched.route.roles && !roleCanAccess(getActiveRole(), matched.route.roles)) {
     viewRoot.innerHTML = `
-      <section class="error-state card-panel">
-        <p class="eyebrow">Akses role ditolak</p>
-        <h1>Role aktif tidak punya akses ke halaman ini</h1>
-        <p>Login menggunakan akun dengan role yang sesuai untuk membuka dashboard ini.</p>
-        <a class="primary-button" href="#/login?redirect=${encodeURIComponent(path)}">Ganti akun</a>
-        <a class="secondary-button" href="#/products">Kembali ke katalog</a>
+      <section class="state-panel">
+        <span class="state-icon" data-lucide="map"></span>
+        <h1>Halaman tidak ditemukan</h1>
+        <p>Area yang kamu buka belum tersedia. Kembali ke katalog untuk lanjut berbelanja.</p>
+        <a class="btn btn-primary" href="#/products">Buka katalog</a>
       </section>
     `;
+    bindShellEvents();
+    renderIcons();
     return;
   }
 
-  viewRoot.innerHTML = Loading();
+  const guardRedirect = matched.route.guard?.(path);
+  if (guardRedirect) {
+    navigate(guardRedirect);
+    return;
+  }
+
+  viewRoot.innerHTML = `
+    <section class="loading-view" role="status">
+      <span data-lucide="loader-circle"></span>
+      <p>Menyiapkan halaman belanja...</p>
+    </section>
+  `;
+  renderIcons();
 
   try {
     viewRoot.innerHTML = await matched.route.page.render({
       params: matched.params,
       query,
+      navigate,
     });
 
     matched.route.page.afterRender?.({
@@ -126,30 +136,55 @@ export async function renderRoute() {
       navigate,
       renderRoute,
     });
-
-    viewRoot.focus({ preventScroll: true });
   } catch (error) {
     viewRoot.innerHTML = `
-      <section class="error-state card-panel">
-        <p class="eyebrow">Error state</p>
-        <h1>Halaman gagal dimuat</h1>
-        <p>${error.message || "Terjadi kesalahan saat memuat data."}</p>
-        <button class="primary-button" type="button" id="retry-route">Coba lagi</button>
+      <section class="state-panel state-panel-danger">
+        <span class="state-icon" data-lucide="circle-alert"></span>
+        <h1>Terjadi kendala saat memuat data</h1>
+        <p>${escapeHtml(error.message || "Coba lagi sebentar lagi.")}</p>
+        <button class="btn btn-primary" type="button" id="retry-route">Coba lagi</button>
       </section>
     `;
     document.querySelector("#retry-route")?.addEventListener("click", renderRoute);
-    showToast(error.message || "Gagal memuat halaman.", "error");
+    showToast("Terjadi kendala saat memuat data. Coba lagi sebentar lagi.", "error");
   }
+
+  bindShellEvents();
+  renderIcons();
+  viewRoot.focus({ preventScroll: true });
+}
+
+function bindShellEvents() {
+  document.querySelector("#header-search")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    navigate(buildProductQuery({ q: data.get("q") }));
+  });
+
+  document.querySelector("#mobile-search")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    navigate(buildProductQuery({ q: data.get("q") }));
+  });
+
+  document.querySelectorAll("[data-logout]").forEach((button) => {
+    button.addEventListener("click", () => {
+      logoutUser();
+      navigate("/products");
+    });
+  });
 }
 
 export function initRouter(roots) {
-  navbarRoot = roots.navbarRoot;
+  headerRoot = roots.headerRoot;
   viewRoot = roots.viewRoot;
+  footerRoot = roots.footerRoot;
 
   window.addEventListener("hashchange", renderRoute);
+  window.addEventListener("pasarkita:cart-updated", renderRoute);
 
   if (!window.location.hash) {
-    navigate("/products");
+    navigate("/");
     return;
   }
 

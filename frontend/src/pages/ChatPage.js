@@ -13,7 +13,7 @@ export async function render() {
       <div>
         <p class="eyebrow">Chat</p>
         <h1>Pesan buyer dan seller</h1>
-        <p>Customer support dapat memakai halaman ini untuk simulasi percakapan marketplace.</p>
+        <p>Customer support dapat memakai halaman ini untuk menangani percakapan marketplace.</p>
       </div>
       <a class="secondary-button" href="#/products">Cari produk</a>
     </section>

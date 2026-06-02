@@ -74,6 +74,38 @@ func (c *PlatformController) RemoveCart(ctx *fiber.Ctx) error {
 	return ok(ctx, cart)
 }
 
+func (c *PlatformController) SyncCart(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	var input services.CartSyncInput
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+	cart, err := c.service.SyncCart(claims.UserID, input)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, cart)
+}
+
+func (c *PlatformController) CalculateCheckout(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	var input services.CartCheckoutInput
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+	estimate, err := c.service.CalculateCheckout(claims.UserID, input)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, estimate)
+}
+
 func (c *PlatformController) CheckoutCart(ctx *fiber.Ctx) error {
 	claims, err := requireClaims(ctx, c.auth)
 	if err != nil {
@@ -128,6 +160,36 @@ func (c *PlatformController) CancelOrder(ctx *fiber.Ctx) error {
 		return mapServiceError(err)
 	}
 	return ok(ctx, order)
+}
+
+func (c *PlatformController) UpdateSellerOrderStatus(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	var input struct {
+		Status string `json:"status"`
+	}
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+	order, err := c.service.UpdateSellerOrderStatus(claims.UserID, ctx.Params("id"), input.Status)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, order)
+}
+
+func (c *PlatformController) OrderTracking(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	tracking, err := c.service.OrderTracking(claims.UserID, ctx.Params("id"))
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return ok(ctx, tracking)
 }
 
 func (c *PlatformController) ListStores(ctx *fiber.Ctx) error {

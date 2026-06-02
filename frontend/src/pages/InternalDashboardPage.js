@@ -68,7 +68,7 @@ const AREA_CONFIG = {
     description: "Tim ini memelihara aplikasi, API gateway, konfigurasi env, error, dan kesiapan rilis.",
     work: [
       "Pantau frontend, backend, dan integrasi API Marketplace.",
-      "Perbaiki bug, cek build, dan audit konfigurasi VITE_API_BASE_URL.",
+      "Perbaiki bug, cek build, dan audit konfigurasi aplikasi.",
       "Koordinasi incident teknis ke role operasional terdampak.",
     ],
   },
