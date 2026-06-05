@@ -28,6 +28,7 @@ export function Navbar(currentPath = "/products") {
 
         <nav class="desktop-nav" aria-label="Navigasi utama">
           ${navItems
+            .filter((item) => item.label !== "Keranjang")
             .map(
               (item) => `
                 <a
@@ -54,12 +55,26 @@ export function Navbar(currentPath = "/products") {
           ${
             loggedIn
               ? `
-                <span class="session-chip" title="${escapeHtml(user.email)}">
-                  ${escapeHtml(user.name)}
-                </span>
-                <a class="text-button" href="#/notifications">Notif</a>
-                <a class="text-button" href="#/profile">Profil</a>
-                <button class="text-button" type="button" id="logout-button">Logout</button>
+                <div class="profile-dropdown-container">
+                  <div class="session-chip-link" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+                    <span class="session-avatar">${escapeHtml(user.name[0].toUpperCase())}</span>
+                    <span class="session-name">${escapeHtml(user.name)}</span>
+                    <span class="session-role-badge">${escapeHtml(role.label)}</span>
+                  </div>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-header">
+                      <strong class="dropdown-name">${escapeHtml(user.name)}</strong>
+                      <span class="dropdown-email">${escapeHtml(user.email)}</span>
+                      <span class="dropdown-role-desc">${escapeHtml(role.description)}</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="#/profile">Profil Saya</a>
+                    <a class="dropdown-item" href="#/notifications">Notifikasi</a>
+                    <a class="dropdown-item" href="#${getRoleHome(activeRole)}">Dashboard ${escapeHtml(role.label)}</a>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item logout-btn" type="button" id="logout-button">Logout</button>
+                  </div>
+                </div>
               `
               : `
                 <a class="secondary-button small" href="#/login">Login</a>
@@ -76,11 +91,11 @@ export function Navbar(currentPath = "/products") {
                     ).join("")}
                   </select>
                 </label>
+                <a class="gateway-chip" href="#${getRoleHome(activeRole)}" title="${escapeHtml(role.description)}">
+                  ${escapeHtml(role.label)}
+                </a>
               `
           }
-          <a class="gateway-chip" href="#${getRoleHome(activeRole)}" title="${escapeHtml(role.description)}">
-            ${escapeHtml(role.label)}
-          </a>
         </div>
       </div>
 
