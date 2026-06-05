@@ -1,16 +1,17 @@
 import { escapeHtml } from "../utils/validation.js";
 
 export function EmptyState({
-  title = "Data tidak tersedia",
-  message = "Coba ubah pencarian atau refresh halaman.",
+  icon = "shopping-bag",
+  title = "Produk belum tersedia",
+  message = "Coba ubah pencarian atau filter untuk melihat pilihan lain.",
   action = "",
 } = {}) {
   return `
-    <div class="empty-state">
-      <span class="empty-mark" aria-hidden="true">PK</span>
-      <strong>${escapeHtml(title)}</strong>
+    <section class="state-panel">
+      <span class="state-icon" data-lucide="${escapeHtml(icon)}"></span>
+      <h2>${escapeHtml(title)}</h2>
       <p>${escapeHtml(message)}</p>
       ${action}
-    </div>
+    </section>
   `;
 }

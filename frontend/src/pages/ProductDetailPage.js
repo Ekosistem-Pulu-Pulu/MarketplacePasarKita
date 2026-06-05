@@ -1,227 +1,172 @@
-import {
-  addCartItem as addBackendCartItem,
-  createDiscussion,
-  getProductById,
-  listDiscussions,
-  listReviews,
-} from "../api/marketplaceApi.js";
+import { ProductGrid } from "../components/ProductGrid.js";
 import { showToast } from "../components/Toast.js";
-import { addCartItem } from "../utils/cart.js";
-import { formatCurrency } from "../utils/currency.js";
-import { calculateCheckoutPreview } from "../utils/feeCalculator.js";
-import { isAuthenticated } from "../utils/storage.js";
-import { escapeHtml, validateQuantity } from "../utils/validation.js";
+import { addToCart } from "../services/cartService.js";
+import { getProduct, getProducts } from "../services/productService.js";
+import { formatCurrency } from "../utils/formatCurrency.js";
+import { escapeHtml } from "../utils/validation.js";
 
 export async function render({ params }) {
-  const response = await getProductById(params.id);
-  const product = response.data;
-  const [reviewsResult, discussionsResult] = await Promise.allSettled([
-    listReviews(product.product_id),
-    listDiscussions(product.product_id),
-  ]);
-  const reviews = reviewsResult.status === "fulfilled" ? reviewsResult.value.data || [] : [];
-  const discussions = discussionsResult.status === "fulfilled" ? discussionsResult.value.data || [] : [];
-  const preview = calculateCheckoutPreview(product.harga, 1);
-  const disabled = product.stok <= 0 || !product.status_aktif;
-  window.__pasarkitaDetailProduct = product;
+  const product = await getProduct(params.id);
+
+  if (!product) {
+    return `
+      <section class="state-panel">
+        <span class="state-icon" data-lucide="shopping-bag"></span>
+        <h1>Produk belum tersedia</h1>
+        <p>Produk yang kamu cari tidak ada di katalog saat ini.</p>
+        <a class="btn btn-primary" href="#/products">Buka katalog</a>
+      </section>
+    `;
+  }
+
+  const similarProducts = (await getProducts({ category: product.category, limit: 8 })).items
+    .filter((item) => item.id !== product.id)
+    .slice(0, 4);
 
   return `
-    <section class="detail-layout">
-      <div class="detail-media card-panel" aria-hidden="true">
-        ${
-          product.image_url
-            ? `<img src="${escapeHtml(product.image_url)}" alt="" />`
-            : `<span>${escapeHtml(product.kategori.slice(0, 2).toUpperCase())}</span>`
-        }
+    <section class="product-detail">
+      <div class="detail-gallery">
+        <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" />
+        <div class="detail-badges">
+          <span class="category-chip">${escapeHtml(product.category)}</span>
+          ${product.discount ? `<span class="discount-badge">${product.discount}%</span>` : ""}
+        </div>
       </div>
 
-      <article class="detail-panel card-panel">
-        <p class="eyebrow">Detail produk</p>
-        <h1>${escapeHtml(product.nama_produk)}</h1>
-        <p>${escapeHtml(product.deskripsi)}</p>
+      <article class="detail-info">
+        <div class="detail-title-row">
+          <span class="eyebrow">Detail produk</span>
+          <h1>${escapeHtml(product.name)}</h1>
+          <div class="product-social-proof">
+            <span><span data-lucide="star"></span>${product.rating.toFixed(1)} rating</span>
+            <span>${product.sold} terjual</span>
+            <span>${product.stock} stok</span>
+          </div>
+        </div>
 
-        <dl class="detail-list">
-          <div>
-            <dt>Harga</dt>
-            <dd>${formatCurrency(product.harga)}</dd>
-          </div>
-          <div>
-            <dt>Stok</dt>
-            <dd>${product.stok} item</dd>
-          </div>
-          <div>
-            <dt>Kategori</dt>
-            <dd>${escapeHtml(product.kategori)}</dd>
-          </div>
-          <div>
-            <dt>Seller</dt>
-            <dd>${escapeHtml(product.seller_id)}</dd>
-          </div>
-          <div>
-            <dt>Toko</dt>
-            <dd>${product.store_id ? `<a href="#/stores/${escapeHtml(product.store_id)}">${escapeHtml(product.store_id)}</a>` : "-"}</dd>
-          </div>
-          <div>
-            <dt>Rating</dt>
-            <dd>${Number(product.rating_avg || 0).toFixed(1)} (${product.review_count || 0} ulasan)</dd>
-          </div>
-          <div>
-            <dt>Terjual</dt>
-            <dd>${product.sold_count || 0} item</dd>
-          </div>
-        </dl>
+        <div class="price-stack">
+          <strong>${formatCurrency(product.price)}</strong>
+          ${
+            product.originalPrice
+              ? `<span>${formatCurrency(product.originalPrice)}</span>`
+              : ""
+          }
+        </div>
 
-        <div class="quantity-panel">
+        <p class="detail-description">${escapeHtml(product.description)}</p>
+
+        <div class="store-panel">
+          <span class="store-avatar" data-lucide="store"></span>
+          <div>
+            <strong>${escapeHtml(product.store.name)}</strong>
+            <p>${escapeHtml(product.store.location)} - Rating toko ${product.store.rating.toFixed(1)}</p>
+          </div>
+        </div>
+
+        <div class="spec-list">
+          ${product.specs
+            .map(
+              (spec) => `
+                <span><span data-lucide="check"></span>${escapeHtml(spec)}</span>
+              `
+            )
+            .join("")}
+        </div>
+
+        <div class="purchase-panel">
           <label>
-            <span>Quantity</span>
-            <input
-              id="qty-input"
-              type="number"
-              min="1"
-              step="1"
-              value="1"
-              data-price="${product.harga}"
-              data-stock="${product.stok}"
-              ${disabled ? "disabled" : ""}
-            />
+            <span>Jumlah beli</span>
+            <div class="quantity-stepper large">
+              <button type="button" id="qty-dec" disabled><span data-lucide="minus"></span></button>
+              <input id="qty-input" type="number" min="1" max="${product.stock}" value="1" />
+              <button type="button" id="qty-inc"><span data-lucide="plus"></span></button>
+            </div>
           </label>
-          <small id="qty-message">${disabled ? "Produk tidak bisa dicheckout." : ""}</small>
-        </div>
-
-        <div class="summary-lines detail-summary">
-          <div>
-            <span>Preview subtotal</span>
-            <strong id="subtotal-preview">${formatCurrency(preview.subtotal)}</strong>
+          <div class="subtotal-preview">
+            <span>Subtotal</span>
+            <strong id="subtotal-preview" data-price="${product.price}">${formatCurrency(product.price)}</strong>
           </div>
         </div>
 
-        <div class="form-actions">
-          <button
-            class="primary-button"
-            type="button"
-            id="detail-checkout-button"
-            ${disabled ? "disabled" : ""}
-          >
-            Lanjut checkout
+        <div class="detail-actions">
+          <button class="btn btn-primary" id="buy-now" type="button">
+            <span data-lucide="shopping-bag"></span>
+            Beli sekarang
           </button>
-          <button
-            class="secondary-button"
-            type="button"
-            id="detail-cart-button"
-            ${disabled ? "disabled" : ""}
-          >
+          <button class="btn btn-secondary" id="add-cart" type="button">
+            <span data-lucide="shopping-cart"></span>
             Tambah ke keranjang
           </button>
-          <a class="secondary-button" href="#/products">Kembali ke produk</a>
         </div>
       </article>
     </section>
 
-    <section class="content-grid two-cols">
-      <article class="card-panel">
-        <h2>Ulasan pembeli</h2>
-        ${
-          reviews.length
-            ? reviews
-                .map(
-                  (review) => `
-                    <div class="review-row">
-                      <strong>${"★".repeat(Number(review.rating || 0))}</strong>
-                      <p>${escapeHtml(review.comment || "-")}</p>
-                      <small>${escapeHtml(review.user_id || "-")}</small>
-                    </div>
-                  `
-                )
-                .join("")
-            : `<p class="muted">Belum ada ulasan.</p>`
-        }
-      </article>
-
-      <article class="card-panel">
-        <h2>Diskusi produk</h2>
-        <form id="discussion-form" class="inline-form">
-          <input class="input" name="message" placeholder="Tanya seller soal produk" />
-          <button class="secondary-button" type="submit">Kirim</button>
-        </form>
-        ${
-          discussions.length
-            ? discussions
-                .map(
-                  (discussion) => `
-                    <div class="review-row">
-                      <p>${escapeHtml(discussion.message || "-")}</p>
-                      ${discussion.reply ? `<small>Seller: ${escapeHtml(discussion.reply)}</small>` : `<small>Menunggu jawaban seller</small>`}
-                    </div>
-                  `
-                )
-                .join("")
-            : `<p class="muted">Belum ada diskusi.</p>`
-        }
-      </article>
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Produk serupa</span>
+          <h2>Pilihan lain dari kategori ${escapeHtml(product.category)}</h2>
+        </div>
+        <a class="text-link" href="#/products?category=${encodeURIComponent(product.category)}">Lihat kategori</a>
+      </div>
+      ${ProductGrid({
+        products: similarProducts,
+        emptyTitle: "Produk serupa belum tersedia",
+        emptyMessage: "Buka katalog untuk menemukan pilihan lain.",
+      })}
     </section>
   `;
 }
 
-export function afterRender({ params, navigate }) {
+export function afterRender({ params, navigate, renderRoute }) {
   const input = document.querySelector("#qty-input");
-  const button = document.querySelector("#detail-checkout-button");
-  const cartButton = document.querySelector("#detail-cart-button");
-  const message = document.querySelector("#qty-message");
-  const subtotalPreview = document.querySelector("#subtotal-preview");
+  const dec = document.querySelector("#qty-dec");
+  const inc = document.querySelector("#qty-inc");
+  const subtotal = document.querySelector("#subtotal-preview");
+  const productState = {
+    price: Number(subtotal?.dataset.price || 0),
+    stock: Number(input?.max || 1),
+  };
 
-  function syncQuantity() {
-    const price = Number(input?.dataset.price || 0);
-    const stock = Number(input?.dataset.stock || 0);
-    const qty = Number(input?.value || 0);
-    const validation = validateQuantity(qty, stock);
-    const preview = calculateCheckoutPreview(price, validation.valid ? qty : 0);
-
-    subtotalPreview.textContent = formatCurrency(preview.subtotal);
-    message.textContent = validation.message;
-    button.disabled = !validation.valid;
+  function getQty() {
+    return Math.max(1, Math.min(productState.stock, Number(input.value || 1)));
   }
 
-  input?.addEventListener("input", syncQuantity);
-  button?.addEventListener("click", () => {
-    const qty = Number(input.value || 0);
-    const validation = validateQuantity(qty, Number(input.dataset.stock || 0));
+  function syncQty(nextQty = getQty()) {
+    input.value = String(nextQty);
+    dec.disabled = nextQty <= 1;
+    inc.disabled = nextQty >= productState.stock;
+    subtotal.textContent = formatCurrency(productState.price * nextQty);
+  }
 
-    if (!validation.valid) {
-      syncQuantity();
-      return;
+  dec?.addEventListener("click", () => syncQty(getQty() - 1));
+  inc?.addEventListener("click", () => syncQty(getQty() + 1));
+  input?.addEventListener("input", () => syncQty());
+
+  document.querySelector("#add-cart")?.addEventListener("click", async () => {
+    try {
+      await addToCart(params.id, getQty());
+      showToast("Produk masuk ke keranjang.");
+      renderRoute();
+    } catch (error) {
+      showToast(error.message || "Produk belum tersedia.", "error");
     }
-
-    const target = `/checkout/${params.id}?qty=${qty}`;
-    navigate(isAuthenticated() ? target : `/login?redirect=${encodeURIComponent(target)}`);
   });
 
-  cartButton?.addEventListener("click", async () => {
-    const qty = Number(input.value || 0);
-    const validation = validateQuantity(qty, Number(input.dataset.stock || 0));
-
-    if (!validation.valid) {
-      syncQuantity();
-      return;
+  document.querySelector("#buy-now")?.addEventListener("click", async () => {
+    try {
+      await addToCart(params.id, getQty());
+      navigate("/cart");
+    } catch (error) {
+      showToast(error.message || "Produk belum tersedia.", "error");
     }
-
-    if (isAuthenticated()) {
-      await addBackendCartItem(window.__pasarkitaDetailProduct.product_id, qty);
-    } else {
-      addCartItem(window.__pasarkitaDetailProduct, qty);
-    }
-    showToast("Produk masuk ke keranjang.");
   });
 
-  document.querySelector("#discussion-form")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!isAuthenticated()) {
-      navigate(`/login?redirect=${encodeURIComponent(`/products/${params.id}`)}`);
-      return;
-    }
-    const message = String(new FormData(event.currentTarget).get("message") || "").trim();
-    if (!message) return;
-    await createDiscussion(params.id, message);
-    showToast("Pertanyaan produk terkirim.");
-    navigate(`/products/${params.id}`);
+  document.querySelectorAll("[data-add-cart]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await addToCart(button.dataset.addCart, 1);
+      showToast("Produk masuk ke keranjang.");
+      renderRoute();
+    });
   });
 }

@@ -1,15 +1,15 @@
-import "./styles/style.css";
+import "./styles/main.css";
 import { initRouter } from "./router.js";
 
-const app = document.querySelector("#app");
-
-app.innerHTML = `
-  <div id="navbar-root"></div>
+document.querySelector("#app").innerHTML = `
+  <div id="header-root"></div>
   <main id="view-root" tabindex="-1"></main>
-  <div id="toast-root"></div>
+  <div id="footer-root"></div>
+  <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
 `;
 
 initRouter({
-  navbarRoot: document.querySelector("#navbar-root"),
+  headerRoot: document.querySelector("#header-root"),
   viewRoot: document.querySelector("#view-root"),
+  footerRoot: document.querySelector("#footer-root"),
 });

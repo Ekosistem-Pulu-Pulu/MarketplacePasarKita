@@ -168,6 +168,21 @@ type CartCheckoutInput struct {
 	PaymentMethod   string `json:"payment_method"`
 }
 
+type CartSyncInput struct {
+	Items []CartInput `json:"items"`
+}
+
+type CheckoutEstimate struct {
+	Items          []CartView `json:"items"`
+	Subtotal       int64      `json:"subtotal"`
+	MarketplaceFee int64      `json:"marketplace_fee"`
+	GatewayFee     int64      `json:"gateway_fee"`
+	ShippingCost   int64      `json:"shipping_cost"`
+	DiscountAmount int64      `json:"discount_amount"`
+	TotalBayar     int64      `json:"total_bayar"`
+	Count          int        `json:"count"`
+}
+
 type VoucherPreview struct {
 	Code           string `json:"code"`
 	Subtotal       int64  `json:"subtotal"`
@@ -211,6 +226,15 @@ func (s *PlatformService) AddCart(userID string, input CartInput) (*CartSummary,
 	if !product.StatusAktif || product.Stok <= 0 {
 		return nil, fmt.Errorf("%w: produk tidak tersedia", ErrBadRequest)
 	}
+	currentQty := 0
+	if item, err := s.cart.FindByUserProduct(userID, input.ProductID); err == nil {
+		currentQty = item.Qty
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	if currentQty+input.Qty > product.Stok {
+		return nil, fmt.Errorf("%w: stok %s tidak cukup", ErrBadRequest, product.NamaProduk)
+	}
 	if _, err := s.cart.Upsert(userID, input.ProductID, input.Qty); err != nil {
 		return nil, err
 	}
@@ -227,6 +251,19 @@ func (s *PlatformService) UpdateCart(userID string, input CartInput) (*CartSumma
 		}
 		return s.Cart(userID)
 	}
+	product, err := s.products.FindByProductID(input.ProductID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !product.StatusAktif || product.Stok <= 0 {
+		return nil, fmt.Errorf("%w: produk tidak tersedia", ErrBadRequest)
+	}
+	if input.Qty > product.Stok {
+		return nil, fmt.Errorf("%w: stok %s tidak cukup", ErrBadRequest, product.NamaProduk)
+	}
 	if _, err := s.cart.Update(userID, input.ProductID, input.Qty, input.Selected); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
@@ -242,6 +279,34 @@ func (s *PlatformService) RemoveCart(userID, productID string) (*CartSummary, er
 	}
 	if err := s.cart.Remove(userID, productID); err != nil {
 		return nil, err
+	}
+	return s.Cart(userID)
+}
+
+func (s *PlatformService) SyncCart(userID string, input CartSyncInput) (*CartSummary, error) {
+	for _, item := range input.Items {
+		if strings.TrimSpace(item.ProductID) == "" || item.Qty <= 0 {
+			continue
+		}
+		if _, err := s.AddCart(userID, item); err != nil {
+			if errors.Is(err, ErrNotFound) || errors.Is(err, ErrBadRequest) {
+				continue
+			}
+			return nil, err
+		}
+		if item.Selected != nil {
+			current, err := s.cart.FindByUserProduct(userID, item.ProductID)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, err
+			}
+			qty := item.Qty
+			if current != nil {
+				qty = current.Qty
+			}
+			if _, err := s.UpdateCart(userID, CartInput{ProductID: item.ProductID, Qty: qty, Selected: item.Selected}); err != nil && !errors.Is(err, ErrNotFound) {
+				return nil, err
+			}
+		}
 	}
 	return s.Cart(userID)
 }
@@ -312,7 +377,9 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 	}
 
 	fee := CalculateMarketplaceFee(subtotal)
-	total := subtotal + fee + shippingCost - discount
+	totalBeforeGateway := subtotal + fee + shippingCost - discount
+	gatewayFee := CalculateGatewayFee(totalBeforeGateway)
+	total := totalBeforeGateway + gatewayFee
 	if total < 0 {
 		total = 0
 	}
@@ -347,7 +414,7 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 		StatusOrder:       status,
 		Subtotal:          subtotal,
 		MarketplaceFee:    fee,
-		GatewayFee:        payment.GatewayFee,
+		GatewayFee:        gatewayFee,
 		TotalBayar:        total,
 		PaymentRequestID:  payment.PaymentRequestID,
 		AddressID:         address.AddressID,
@@ -389,6 +456,82 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 	return order, nil
 }
 
+func (s *PlatformService) CalculateCheckout(userID string, input CartCheckoutInput) (*CheckoutEstimate, error) {
+	cart, err := s.Cart(userID)
+	if err != nil {
+		return nil, err
+	}
+	selected := make([]CartView, 0)
+	for _, item := range cart.Items {
+		if item.Item.Selected {
+			selected = append(selected, item)
+		}
+	}
+	if len(selected) == 0 {
+		return nil, fmt.Errorf("%w: pilih minimal satu produk di cart", ErrBadRequest)
+	}
+	if strings.TrimSpace(input.AddressID) != "" {
+		address, err := s.addresses.FindByAddressID(input.AddressID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		if address.UserID != userID {
+			return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrBadRequest)
+		}
+	}
+
+	subtotal := int64(0)
+	count := 0
+	for _, view := range selected {
+		if !view.Product.StatusAktif || view.Product.Stok < view.Item.Qty {
+			return nil, fmt.Errorf("%w: stok %s tidak cukup", ErrBadRequest, view.Product.NamaProduk)
+		}
+		subtotal += view.Product.Harga * int64(view.Item.Qty)
+		count += view.Item.Qty
+	}
+
+	shippingCourier := strings.TrimSpace(input.ShippingCourier)
+	if shippingCourier == "" {
+		shippingCourier = "JNE"
+	}
+	shippingService := strings.TrimSpace(input.ShippingService)
+	if shippingService == "" {
+		shippingService = "REG"
+	}
+	shippingCost := CalculateShippingCost(shippingCourier, shippingService, selected)
+	discount := int64(0)
+	if strings.TrimSpace(input.VoucherCode) != "" {
+		preview, err := s.ApplyVoucher(input.VoucherCode, subtotal)
+		if err != nil {
+			return nil, err
+		}
+		if preview.Eligible {
+			discount = preview.DiscountAmount
+		}
+	}
+	fee := CalculateMarketplaceFee(subtotal)
+	totalBeforeGateway := subtotal + fee + shippingCost - discount
+	gatewayFee := CalculateGatewayFee(totalBeforeGateway)
+	total := totalBeforeGateway + gatewayFee
+	if total < 0 {
+		total = 0
+	}
+
+	return &CheckoutEstimate{
+		Items:          selected,
+		Subtotal:       subtotal,
+		MarketplaceFee: fee,
+		GatewayFee:     gatewayFee,
+		ShippingCost:   shippingCost,
+		DiscountAmount: discount,
+		TotalBayar:     total,
+		Count:          count,
+	}, nil
+}
+
 func (s *PlatformService) ListOrders(userID string) ([]models.Order, error) {
 	return s.orders.ListByUser(userID)
 }
@@ -420,6 +563,73 @@ func (s *PlatformService) CancelOrder(userID, orderID, reason string) (*models.O
 		return nil, err
 	}
 	return order, nil
+}
+
+func (s *PlatformService) UpdateSellerOrderStatus(sellerID, orderID, status string) (*models.Order, error) {
+	order, err := s.orders.FindByOrderID(orderID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	owns, err := s.orders.SellerOwnsOrder(sellerID, orderID)
+	if err != nil {
+		return nil, err
+	}
+	if !owns {
+		return nil, fmt.Errorf("%w: order bukan milik seller aktif", ErrBadRequest)
+	}
+
+	switch strings.ToUpper(strings.TrimSpace(status)) {
+	case "READY_FOR_SHIPMENT", "PACKED", "SIAP_DIKIRIM":
+		order.StatusOrder = models.StatusReadyForShipment
+	case "SHIPPED", "DIKIRIM":
+		order.StatusOrder = models.StatusShipped
+	default:
+		return nil, fmt.Errorf("%w: status order tidak valid", ErrBadRequest)
+	}
+	if err := s.orders.Save(order); err != nil {
+		return nil, err
+	}
+	return order, nil
+}
+
+func (s *PlatformService) OrderTracking(userID, orderID string) (fiberMap, error) {
+	order, err := s.orders.FindByOrderID(orderID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	owns := order.UserID == userID
+	if !owns {
+		owns, err = s.orders.SellerOwnsOrder(userID, orderID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !owns {
+		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrBadRequest)
+	}
+
+	shipment, err := s.data.FindShipmentByOrderID(orderID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return fiberMap{"order_id": orderID, "status": order.StatusOrder}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return fiberMap{
+		"order_id":        orderID,
+		"status":          shipment.Status,
+		"courier":         shipment.Courier,
+		"service":         shipment.Service,
+		"tracking_number": shipment.TrackingNumber,
+		"shipping_cost":   shipment.ShippingCost,
+		"estimated_days":  shipment.EstimatedDays,
+	}, nil
 }
 
 func (s *PlatformService) ListStores() ([]models.Store, error) {

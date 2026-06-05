@@ -215,6 +215,14 @@ func (r *OrderRepository) ListBySeller(sellerID string) ([]models.Order, error) 
 	return orders, err
 }
 
+func (r *OrderRepository) SellerOwnsOrder(sellerID, orderID string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.OrderItem{}).
+		Where("seller_id = ? AND order_id_ref = ?", sellerID, orderID).
+		Count(&count).Error
+	return count > 0, err
+}
+
 func (r *OrderRepository) Save(order *models.Order) error {
 	return r.db.Save(order).Error
 }
@@ -231,6 +239,14 @@ func (r *CartRepository) ListByUser(userID string) ([]models.CartItem, error) {
 	var items []models.CartItem
 	err := r.db.Where("user_id = ?", userID).Order("created_at DESC").Find(&items).Error
 	return items, err
+}
+
+func (r *CartRepository) FindByUserProduct(userID, productID string) (*models.CartItem, error) {
+	var item models.CartItem
+	if err := r.db.Where("user_id = ? AND product_id = ?", userID, productID).First(&item).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
 }
 
 func (r *CartRepository) Upsert(userID, productID string, qty int) (*models.CartItem, error) {
@@ -340,6 +356,14 @@ func (r *MarketplaceDataRepository) MarkNotificationRead(userID, notificationID 
 
 func (r *MarketplaceDataRepository) SaveShipment(shipment *models.Shipment) error {
 	return r.db.Save(shipment).Error
+}
+
+func (r *MarketplaceDataRepository) FindShipmentByOrderID(orderID string) (*models.Shipment, error) {
+	var shipment models.Shipment
+	if err := r.db.Where("order_id_ref = ?", orderID).First(&shipment).Error; err != nil {
+		return nil, err
+	}
+	return &shipment, nil
 }
 
 type AuditLogRepository struct {
