@@ -23,6 +23,41 @@ function statusLabel(status) {
   return labels[status] || "Diproses";
 }
 
+const timelineSteps = [
+  { status: "PENDING_PAYMENT", label: "Checkout dibuat" },
+  { status: "PAYMENT_PROCESSING", label: "Payment diproses" },
+  { status: "PAID", label: "Pembayaran berhasil" },
+  { status: "READY_FOR_SHIPMENT", label: "Seller siapkan barang" },
+  { status: "SHIPPED", label: "Dikirim" },
+  { status: "COMPLETED", label: "Selesai" },
+];
+
+function statusIndex(status) {
+  const index = timelineSteps.findIndex((step) => step.status === status);
+  return index === -1 ? 0 : index;
+}
+
+function timeline(status) {
+  const current = statusIndex(status);
+  const failed = status === "PAYMENT_FAILED" || status === "CANCELLED";
+
+  return `
+    <div class="timeline" style="margin-top: 16px;">
+      ${timelineSteps
+        .map((step, index) => {
+          const state = failed && index === 1 ? "failed" : index < current ? "done" : index === current ? "active" : "";
+          return `
+            <div class="timeline-step ${state}">
+              <span aria-hidden="true"></span>
+              <strong>${step.label}</strong>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
 function orderCard(order) {
   const firstItem = order.items?.[0];
   return `
@@ -77,8 +112,9 @@ function orderDetail(order, tracking) {
             <span data-lucide="truck"></span>
             <h2>Status pengiriman</h2>
           </div>
-          <p>${escapeHtml(statusLabel(tracking?.status || order.status_order))}</p>
-          <p>${escapeHtml([tracking?.courier, tracking?.service, tracking?.estimated_days].filter(Boolean).join(" - "))}</p>
+          <p><strong>${escapeHtml(statusLabel(tracking?.status || order.status_order))}</strong></p>
+          ${[tracking?.courier, tracking?.service, tracking?.estimated_days].filter(Boolean).length ? `<p>${escapeHtml([tracking?.courier, tracking?.service, tracking?.estimated_days].filter(Boolean).join(" - "))}</p>` : ""}
+          ${timeline(order.status_order)}
         </section>
       </div>
 

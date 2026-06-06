@@ -1,6 +1,6 @@
 import { ProductGrid } from "../components/ProductGrid.js";
 import { showToast } from "../components/Toast.js";
-import { addToCart } from "../services/cartService.js";
+import { addToCart, selectSingleItem } from "../services/cartService.js";
 import { getProduct, getProducts } from "../services/productService.js";
 import { formatCurrency } from "../utils/formatCurrency.js";
 import { escapeHtml } from "../utils/validation.js";
@@ -155,8 +155,8 @@ export function afterRender({ params, navigate, renderRoute }) {
 
   document.querySelector("#buy-now")?.addEventListener("click", async () => {
     try {
-      await addToCart(params.id, getQty());
-      navigate("/cart");
+      await selectSingleItem(params.id, getQty());
+      navigate("/checkout");
     } catch (error) {
       showToast(error.message || "Produk belum tersedia.", "error");
     }

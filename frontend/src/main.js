@@ -1,5 +1,7 @@
+import "./styles/style.css";
 import "./styles/main.css";
 import { initRouter } from "./router.js";
+
 
 document.querySelector("#app").innerHTML = `
   <div id="header-root"></div>

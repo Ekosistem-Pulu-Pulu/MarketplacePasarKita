@@ -184,3 +184,15 @@ export async function syncGuestCart() {
   writeGuestCart([]);
   return normalizeServerCart(response);
 }
+
+export async function selectSingleItem(productId, qty = 1) {
+  // First add/update the item quantity
+  await addToCart(productId, qty);
+  const cartState = await getCartState();
+  // Set selected=true only for this product, false for all others
+  for (const item of cartState.items) {
+    const isTarget = item.id === productId;
+    await toggleCartItem(item.id, isTarget);
+  }
+}
+

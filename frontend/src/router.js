@@ -10,6 +10,12 @@ import * as OrdersPage from "./pages/OrdersPage.js";
 import * as ProductDetailPage from "./pages/ProductDetailPage.js";
 import * as RegisterPage from "./pages/RegisterPage.js";
 import * as SellerPage from "./pages/SellerPage.js";
+import * as ProfilePage from "./pages/ProfilePage.js";
+import * as ChatPage from "./pages/ChatPage.js";
+import * as NotificationsPage from "./pages/NotificationsPage.js";
+import * as StorePage from "./pages/StorePage.js";
+import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
+import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
 import { requireAuth, requireRole } from "./app/guards.js";
 import { getCartCountSnapshot } from "./services/cartService.js";
 import { logoutUser } from "./services/authService.js";
@@ -31,6 +37,18 @@ const routes = [
   { pattern: /^\/orders$/, page: OrdersPage, guard: requireAuth },
   { pattern: /^\/orders\/([^/]+)$/, page: OrdersPage, keys: ["id"], guard: requireAuth },
   { pattern: /^\/seller$/, page: SellerPage, guard: (path) => requireRole(path, ["seller"]) },
+  { pattern: /^\/seller\/products$/, page: SellerDashboardPage, guard: (path) => requireRole(path, ["seller"]) },
+  { pattern: /^\/profile$/, page: ProfilePage, guard: requireAuth },
+  { pattern: /^\/chat$/, page: ChatPage, guard: requireAuth },
+  { pattern: /^\/notifications$/, page: NotificationsPage, guard: requireAuth },
+  { pattern: /^\/stores$/, page: StorePage },
+  { pattern: /^\/stores\/([^/]+)$/, page: StorePage, keys: ["id"] },
+  { pattern: /^\/support$/, page: InternalDashboardPage, params: { area: "support" }, guard: (path) => requireRole(path, ["customer_support", "platform_admin"]) },
+  { pattern: /^\/finance$/, page: InternalDashboardPage, params: { area: "finance" }, guard: (path) => requireRole(path, ["finance_ops", "platform_admin"]) },
+  { pattern: /^\/fulfillment$/, page: InternalDashboardPage, params: { area: "fulfillment" }, guard: (path) => requireRole(path, ["fulfillment_ops", "platform_admin"]) },
+  { pattern: /^\/admin\/catalog$/, page: InternalDashboardPage, params: { area: "catalog" }, guard: (path) => requireRole(path, ["catalog_admin", "platform_admin"]) },
+  { pattern: /^\/admin\/platform$/, page: InternalDashboardPage, params: { area: "platform" }, guard: (path) => requireRole(path, ["platform_admin"]) },
+  { pattern: /^\/admin\/tech$/, page: InternalDashboardPage, params: { area: "tech" }, guard: (path) => requireRole(path, ["tech_maintainer", "platform_admin"]) },
 ];
 
 function parseHash() {
@@ -49,7 +67,7 @@ function matchRoute(path) {
     const match = path.match(route.pattern);
     if (!match) continue;
 
-    const params = {};
+    const params = { ...(route.params || {}) };
     (route.keys || []).forEach((key, index) => {
       params[key] = decodeURIComponent(match[index + 1]);
     });
@@ -59,6 +77,7 @@ function matchRoute(path) {
 
   return null;
 }
+
 
 export function navigate(path) {
   const target = path.startsWith("#") ? path : `#${path}`;
