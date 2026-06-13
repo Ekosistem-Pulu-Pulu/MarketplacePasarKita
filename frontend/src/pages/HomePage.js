@@ -83,10 +83,10 @@ export async function render({ query }) {
   return `
     <section class="market-hero">
       <div class="hero-copy">
-        <span class="eyebrow">Marketplace lokal</span>
-        <h1>Belanja lebih rapi dari toko pilihan di PasarKita.</h1>
+        <span class="eyebrow">UMKM Marketplace Indonesia</span>
+        <h1>Dukung Produk Lokal, Temukan Keunikan Nusantara</h1>
         <p>
-          Cari produk, bandingkan harga, simpan ke keranjang, lalu checkout dengan alur yang jelas dari awal sampai pesanan dibuat.
+          Temukan produk terbaik hasil karya produsen lokal Indonesia. Dari kerajinan tangan, kopi pilihan, camilan tradisional hingga batik modern berkualitas premium, semuanya ada di PasarKita.
         </p>
         <form class="hero-search" id="hero-search">
           <span data-lucide="search"></span>
@@ -94,7 +94,7 @@ export async function render({ query }) {
             name="q"
             value="${escapeHtml(filters.q)}"
             autocomplete="off"
-            placeholder="Cari kopi, keyboard, skincare, atau kebutuhan rumah"
+            placeholder="Cari kopi gayo, batik modern, kerajinan bambu..."
             aria-label="Cari produk"
           />
           <button class="btn btn-primary" type="submit">Cari produk</button>

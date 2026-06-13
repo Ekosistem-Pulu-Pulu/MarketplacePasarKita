@@ -5,6 +5,7 @@ import { renderIcons } from "./icons.js";
 import * as CartPage from "./pages/CartPage.js";
 import * as CheckoutPage from "./pages/CheckoutPage.js";
 import * as HomePage from "./pages/HomePage.js";
+import * as ProductListPage from "./pages/ProductListPage.js";
 import * as LoginPage from "./pages/LoginPage.js";
 import * as OrdersPage from "./pages/OrdersPage.js";
 import * as ProductDetailPage from "./pages/ProductDetailPage.js";
@@ -18,6 +19,7 @@ import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
 import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
 import { requireAuth, requireRole } from "./app/guards.js";
 import { getCartCountSnapshot } from "./services/cartService.js";
+import { getProducts } from "./services/productService.js";
 import { logoutUser } from "./services/authService.js";
 import { getCurrentUser } from "./utils/storage.js";
 import { escapeHtml } from "./utils/validation.js";
@@ -28,7 +30,7 @@ let footerRoot;
 
 const routes = [
   { pattern: /^\/$/, page: HomePage },
-  { pattern: /^\/products$/, page: HomePage },
+  { pattern: /^\/products$/, page: ProductListPage },
   { pattern: /^\/products\/([^/]+)$/, page: ProductDetailPage, keys: ["id"] },
   { pattern: /^\/cart$/, page: CartPage },
   { pattern: /^\/checkout$/, page: CheckoutPage, guard: requireAuth },
@@ -173,6 +175,179 @@ export async function renderRoute() {
   viewRoot.focus({ preventScroll: true });
 }
 
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+function bindSearchAutocomplete(formSelector) {
+  const form = document.querySelector(formSelector);
+  if (!form) return;
+
+  const input = form.querySelector("input[name='q']");
+  if (!input) return;
+
+  let dropdown = form.querySelector(".search-suggestions-dropdown");
+
+  const closeDropdown = () => {
+    if (dropdown) {
+      dropdown.remove();
+      dropdown = null;
+    }
+  };
+
+  const clickOutsideHandler = (e) => {
+    if (!form.contains(e.target)) {
+      closeDropdown();
+      document.removeEventListener("click", clickOutsideHandler);
+    }
+  };
+
+  const handleInput = debounce(async () => {
+    const queryVal = input.value.trim();
+    if (queryVal.length < 2) {
+      closeDropdown();
+      return;
+    }
+
+    if (!dropdown) {
+      dropdown = document.createElement("div");
+      dropdown.className = "search-suggestions-dropdown";
+      form.appendChild(dropdown);
+      document.addEventListener("click", clickOutsideHandler);
+    }
+
+    dropdown.innerHTML = `
+      <div class="suggestion-loading">
+        <span data-lucide="loader-circle" class="spin"></span>
+        <span>Mencari "${escapeHtml(queryVal)}"...</span>
+      </div>
+    `;
+    renderIcons();
+
+    try {
+      const catalog = await getProducts({ q: queryVal, limit: 6 });
+      const items = catalog.items || [];
+
+      if (items.length === 0) {
+        dropdown.innerHTML = `
+          <div class="suggestion-empty">
+            <span data-lucide="info"></span>
+            <span>Produk tidak ditemukan</span>
+          </div>
+        `;
+        renderIcons();
+        return;
+      }
+
+      const matchQuery = queryVal.toLowerCase();
+      const categories = [...new Set(items.map(item => item.category))]
+        .filter(cat => cat.toLowerCase().includes(matchQuery))
+        .slice(0, 3);
+
+      const stores = [...new Map(items.map(item => [item.store.id, item.store])).values()]
+        .filter(store => store.name.toLowerCase().includes(matchQuery))
+        .slice(0, 3);
+
+      let html = "";
+
+      if (categories.length > 0) {
+        html += `
+          <div class="suggestion-section">
+            <div class="suggestion-section-title">Kategori Terkait</div>
+            ${categories.map(cat => `
+              <div class="suggestion-item" data-suggestion-type="category" data-suggestion-value="${escapeHtml(cat)}">
+                <span data-lucide="tag"></span>
+                <span class="suggestion-item-title">${escapeHtml(cat)}</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      if (stores.length > 0) {
+        html += `
+          <div class="suggestion-section">
+            <div class="suggestion-section-title">Toko Terkait</div>
+            ${stores.map(store => `
+              <div class="suggestion-item" data-suggestion-type="store" data-suggestion-value="${escapeHtml(store.name)}">
+                <span data-lucide="store"></span>
+                <div class="suggestion-item-info">
+                  <span class="suggestion-item-title">${escapeHtml(store.name)}</span>
+                  <span class="suggestion-item-meta">${escapeHtml(store.location)}</span>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      html += `
+        <div class="suggestion-section">
+          <div class="suggestion-section-title">Produk Terkait</div>
+          ${items.map(product => `
+            <a href="#/products/${escapeHtml(product.id)}" class="suggestion-item" data-suggestion-type="product">
+              <img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" />
+              <div class="suggestion-item-info">
+                <span class="suggestion-item-title">${escapeHtml(product.name)}</span>
+                <span class="suggestion-item-price">Rp ${product.price.toLocaleString("id-ID")}</span>
+                <span class="suggestion-item-meta">${escapeHtml(product.store.name)} • ${escapeHtml(product.store.location)}</span>
+              </div>
+            </a>
+          `).join("")}
+        </div>
+      `;
+
+      dropdown.innerHTML = html;
+      renderIcons();
+
+      dropdown.querySelectorAll(".suggestion-item[data-suggestion-type]").forEach(item => {
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          const type = item.dataset.suggestionType;
+          const val = item.dataset.suggestionValue;
+          closeDropdown();
+          if (type === "category") {
+            navigate(`/products?category=${encodeURIComponent(val)}`);
+          } else if (type === "store") {
+            navigate(`/products?q=${encodeURIComponent(val)}`);
+          }
+        });
+      });
+
+      dropdown.querySelectorAll(".suggestion-item[href]").forEach(link => {
+        link.addEventListener("click", () => {
+          closeDropdown();
+        });
+      });
+
+    } catch (err) {
+      dropdown.innerHTML = `
+        <div class="suggestion-error">
+          <span data-lucide="circle-alert"></span>
+          <span>Gagal memuat rekomendasi</span>
+        </div>
+      `;
+      renderIcons();
+    }
+  }, 300);
+
+  input.addEventListener("input", handleInput);
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeDropdown();
+    }
+  });
+}
+
 function bindShellEvents() {
   document.querySelector("#header-search")?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -192,6 +367,10 @@ function bindShellEvents() {
       navigate("/products");
     });
   });
+
+  bindSearchAutocomplete("#header-search");
+  bindSearchAutocomplete("#mobile-search");
+  bindSearchAutocomplete("#hero-search");
 }
 
 export function initRouter(roots) {

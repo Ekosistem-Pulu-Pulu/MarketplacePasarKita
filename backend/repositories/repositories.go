@@ -21,13 +21,19 @@ func (r *ProductRepository) Browse(keyword, kategori, sort string, page, limit i
 	var products []models.Product
 	var total int64
 
-	query := r.db.Model(&models.Product{}).Where("status_aktif = ? AND stok > 0", true)
+	query := r.db.Model(&models.Product{}).
+		Joins("LEFT JOIN stores ON stores.store_id = products.store_id").
+		Where("products.status_aktif = ? AND products.stok > 0", true)
+
 	if keyword != "" {
 		like := "%" + strings.ToLower(keyword) + "%"
-		query = query.Where("LOWER(nama_produk) LIKE ? OR LOWER(deskripsi) LIKE ?", like, like)
+		query = query.Where(
+			"LOWER(products.nama_produk) LIKE ? OR LOWER(products.deskripsi) LIKE ? OR LOWER(products.kategori) LIKE ? OR LOWER(stores.name) LIKE ?",
+			like, like, like, like,
+		)
 	}
 	if kategori != "" && kategori != "all" {
-		query = query.Where("kategori = ?", kategori)
+		query = query.Where("products.kategori = ?", kategori)
 	}
 
 	if err := query.Count(&total).Error; err != nil {
@@ -36,11 +42,11 @@ func (r *ProductRepository) Browse(keyword, kategori, sort string, page, limit i
 
 	switch sort {
 	case "price_asc", "low":
-		query = query.Order("harga ASC")
+		query = query.Order("products.harga ASC")
 	case "price_desc", "high":
-		query = query.Order("harga DESC")
+		query = query.Order("products.harga DESC")
 	default:
-		query = query.Order("created_at DESC")
+		query = query.Order("products.created_at DESC")
 	}
 
 	offset := (page - 1) * limit
