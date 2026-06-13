@@ -1,21 +1,24 @@
 import { escapeHtml } from "../utils/validation.js";
 
-export function CategoryMenu({ categories, activeCategory = "" }) {
+export function CategoryMenu({ categories, activeCategory = "", productCounts = {} }) {
   return `
     <div class="category-menu" aria-label="Kategori populer">
       ${categories
-        .map(
-          (category) => `
+        .map((category) => {
+          const count = productCounts[category.name] || 0;
+          return `
             <a
               class="category-tile ${activeCategory === category.name ? "active" : ""}"
               href="#/products?category=${encodeURIComponent(category.name)}"
             >
-              <span data-lucide="${escapeHtml(category.icon)}"></span>
+              <div class="category-icon-wrapper">
+                <span data-lucide="${escapeHtml(category.icon)}"></span>
+              </div>
               <strong>${escapeHtml(category.name)}</strong>
-              <small>${escapeHtml(category.description)}</small>
+              <small class="category-count-badge">${count} Produk</small>
             </a>
-          `
-        )
+          `;
+        })
         .join("")}
     </div>
   `;

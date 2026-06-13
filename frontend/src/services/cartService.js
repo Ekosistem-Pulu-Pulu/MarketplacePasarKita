@@ -45,7 +45,7 @@ function normalizeServerCart(response) {
     })
     .filter(Boolean);
 
-  serverCartCount = Number(data.count || mappedItems.reduce((total, item) => total + item.qty, 0));
+  serverCartCount = mappedItems.length;
   return {
     items: mappedItems,
     subtotal: Number(data.subtotal || 0),
@@ -79,13 +79,13 @@ export async function getCartState() {
     subtotal: cleanItems
       .filter((item) => item.selected)
       .reduce((total, item) => total + item.price * item.qty, 0),
-    count: cleanItems.reduce((total, item) => total + item.qty, 0),
+    count: cleanItems.length,
   };
 }
 
 export function getCartCountSnapshot() {
   if (isAuthenticated()) return serverCartCount;
-  return readGuestCart().reduce((total, item) => total + Number(item.qty || 0), 0);
+  return readGuestCart().length;
 }
 
 export async function addToCart(productId, qty = 1) {

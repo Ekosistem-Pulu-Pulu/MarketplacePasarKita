@@ -18,7 +18,7 @@ import * as StorePage from "./pages/StorePage.js";
 import * as SellerDashboardPage from "./pages/SellerDashboardPage.js";
 import * as InternalDashboardPage from "./pages/InternalDashboardPage.js";
 import { requireAuth, requireRole } from "./app/guards.js";
-import { getCartCountSnapshot } from "./services/cartService.js";
+import { getCartCountSnapshot, getCartState } from "./services/cartService.js";
 import { getProducts } from "./services/productService.js";
 import { logoutUser } from "./services/authService.js";
 import { getCurrentUser } from "./utils/storage.js";
@@ -115,6 +115,18 @@ export async function renderRoute() {
     user: getCurrentUser(),
   });
   footerRoot.innerHTML = Footer();
+
+  getCartState().then(() => {
+    const count = getCartCountSnapshot();
+    document.querySelectorAll(".nav-count-badge").forEach((el) => {
+      el.textContent = count;
+      el.style.display = count > 0 ? "inline-grid" : "none";
+    });
+    document.querySelectorAll(".bottom-count-badge").forEach((el) => {
+      el.textContent = count;
+      el.style.display = count > 0 ? "inline-grid" : "none";
+    });
+  }).catch(() => {});
 
   if (!matched) {
     viewRoot.innerHTML = `
@@ -379,7 +391,29 @@ export function initRouter(roots) {
   footerRoot = roots.footerRoot;
 
   window.addEventListener("hashchange", renderRoute);
-  window.addEventListener("pasarkita:cart-updated", renderRoute);
+  window.addEventListener("pasarkita:cart-updated", () => {
+    const count = getCartCountSnapshot();
+    
+    document.querySelectorAll(".nav-count-badge").forEach((el) => {
+      el.textContent = count;
+      el.style.display = count > 0 ? "inline-grid" : "none";
+    });
+
+    document.querySelectorAll(".bottom-count-badge").forEach((el) => {
+      el.textContent = count;
+      el.style.display = count > 0 ? "inline-grid" : "none";
+    });
+
+    const heroCartCount = document.querySelector(".hero-metrics div:last-child strong");
+    if (heroCartCount) {
+      heroCartCount.textContent = count;
+    }
+
+    const { path } = parseHash();
+    if (path === "/cart" || path.startsWith("/checkout")) {
+      renderRoute();
+    }
+  });
 
   if (!window.location.hash) {
     navigate("/");

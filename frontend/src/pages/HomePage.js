@@ -70,10 +70,19 @@ function activeFilterChips(filters) {
 
 export async function render({ query }) {
   const filters = getFilters(query);
-  const [catalog, categoryOptions] = await Promise.all([
+  const [catalog, categoryOptions, allProductsCatalog] = await Promise.all([
     getProducts(filters),
     getCategoryOptions().catch(() => categories),
+    getProducts({ limit: 100 }).catch(() => ({ items: [] })),
   ]);
+
+  const productCounts = {};
+  if (allProductsCatalog && allProductsCatalog.items) {
+    allProductsCatalog.items.forEach((item) => {
+      productCounts[item.category] = (productCounts[item.category] || 0) + 1;
+    });
+  }
+
   const visibleProducts = catalog.items;
   const recommended = [...visibleProducts].sort((a, b) => b.rating - a.rating).slice(0, 4);
   const bestSelling = [...visibleProducts].sort((a, b) => b.sold - a.sold).slice(0, 4);
@@ -120,7 +129,7 @@ export async function render({ query }) {
         </div>
         <a class="text-link" href="#/products">Lihat semua</a>
       </div>
-      ${CategoryMenu({ categories: categoryOptions, activeCategory: filters.category })}
+      ${CategoryMenu({ categories: categoryOptions, activeCategory: filters.category, productCounts })}
     </section>
 
     <section class="catalog-panel" id="catalog">
@@ -256,7 +265,7 @@ export function afterRender({ navigate, renderRoute }) {
       try {
         await addToCart(button.dataset.addCart, 1);
         showToast("Produk masuk ke keranjang.");
-        renderRoute();
+        window.dispatchEvent(new Event("pasarkita:cart-updated"));
       } catch (error) {
         showToast(error.message || "Produk belum tersedia.", "error");
       }

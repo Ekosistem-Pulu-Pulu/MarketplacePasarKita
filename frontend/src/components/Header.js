@@ -69,12 +69,12 @@ export function Header({ activePath = "/", keyword = "", cartCount = 0, user = n
           ${navItems
             .map(
               (item) => `
-                <a class="nav-item ${isActive(activePath, item.path) ? "active" : ""}" href="${item.href}">
+                <a class="nav-item ${isActive(activePath, item.path) ? "active" : ""}" href="${item.href}" ${item.path === "/cart" ? 'id="nav-cart-link"' : ""}>
                   <span data-lucide="${item.icon}"></span>
                   ${item.label}
                   ${
-                    item.path === "/cart" && cartCount
-                      ? `<strong class="nav-count">${cartCount}</strong>`
+                    item.path === "/cart"
+                      ? `<strong class="nav-count nav-count-badge" style="display: ${cartCount ? "inline-grid" : "none"};">${cartCount}</strong>`
                       : ""
                   }
                 </a>
@@ -105,12 +105,12 @@ export function Header({ activePath = "/", keyword = "", cartCount = 0, user = n
         ${navItems
           .map(
             (item) => `
-              <a class="${isActive(activePath, item.path) ? "active" : ""}" href="${item.href}">
+              <a class="${isActive(activePath, item.path) ? "active" : ""}" href="${item.href}" ${item.path === "/cart" ? 'id="mobile-cart-link"' : ""}>
                 <span data-lucide="${item.icon}"></span>
                 <small>${item.label}</small>
                 ${
-                  item.path === "/cart" && cartCount
-                    ? `<strong class="bottom-count">${cartCount}</strong>`
+                  item.path === "/cart"
+                    ? `<strong class="bottom-count bottom-count-badge" style="display: ${cartCount ? "inline-grid" : "none"};">${cartCount}</strong>`
                     : ""
                 }
               </a>

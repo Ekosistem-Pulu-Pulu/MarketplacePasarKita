@@ -59,9 +59,9 @@ export async function render({ query }) {
       </div>
     </section>
 
-    <section class="content-section" style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start;">
+    <section class="catalog-layout-container">
       <!-- Sidebar Filters (Tokopedia Style) -->
-      <aside class="filter-sidebar" style="background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius-sm); padding: 20px; box-shadow: var(--shadow-sm); position: sticky; top: 100px;">
+      <aside class="catalog-filter-sidebar">
         <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 16px; border-bottom: 1px solid var(--slate-100); padding-bottom: 8px; color: var(--slate-900);">Filter Produk</h2>
         <form id="product-filter-form" style="display: flex; flex-direction: column; gap: 16px;">
           <label style="display: flex; flex-direction: column; gap: 6px;">

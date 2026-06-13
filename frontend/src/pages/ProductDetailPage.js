@@ -147,7 +147,7 @@ export function afterRender({ params, navigate, renderRoute }) {
     try {
       await addToCart(params.id, getQty());
       showToast("Produk masuk ke keranjang.");
-      renderRoute();
+      window.dispatchEvent(new Event("pasarkita:cart-updated"));
     } catch (error) {
       showToast(error.message || "Produk belum tersedia.", "error");
     }
@@ -164,9 +164,13 @@ export function afterRender({ params, navigate, renderRoute }) {
 
   document.querySelectorAll("[data-add-cart]").forEach((button) => {
     button.addEventListener("click", async () => {
-      await addToCart(button.dataset.addCart, 1);
-      showToast("Produk masuk ke keranjang.");
-      renderRoute();
+      try {
+        await addToCart(button.dataset.addCart, 1);
+        showToast("Produk masuk ke keranjang.");
+        window.dispatchEvent(new Event("pasarkita:cart-updated"));
+      } catch (error) {
+        showToast(error.message || "Produk belum tersedia.", "error");
+      }
     });
   });
 }
