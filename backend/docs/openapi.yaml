@@ -1,0 +1,755 @@
+openapi: 3.0.3
+info:
+  title: PasarKita Marketplace API
+  description: Dokumentasi API untuk backend Marketplace PasarKita (Go Fiber). API ini mendukung ekosistem B2C untuk UMKM dengan fitur autentikasi, manajemen produk, cart, checkout, pembayaran, pesanan, dan manajemen seller.
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:3002
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          description: Payload dari response
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: "Deskripsi pesan error"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [buyer, seller]
+        phone:
+          type: string
+        emailVerified:
+          type: boolean
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserAddress:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        recipient:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+        postalCode:
+          type: string
+        isDefault:
+          type: boolean
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+        originalPrice:
+          type: integer
+        discount:
+          type: integer
+        stock:
+          type: integer
+        categoryId:
+          type: string
+        category:
+          type: string
+        image:
+          type: string
+        variants:
+          type: array
+          items:
+            type: string
+        featured:
+          type: boolean
+        highlights:
+          type: array
+          items:
+            type: string
+        weightGram:
+          type: integer
+        condition:
+          type: string
+        location:
+          type: string
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        sold:
+          type: integer
+        active:
+          type: boolean
+        store:
+          $ref: '#/components/schemas/Store'
+
+    Store:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        logo:
+          type: string
+        rating:
+          type: number
+        products:
+          type: integer
+        badge:
+          type: string
+        initials:
+          type: string
+
+    FrontendOrder:
+      type: object
+      properties:
+        id:
+          type: string
+        buyer:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              qty:
+                type: integer
+              variant:
+                type: string
+              selected:
+                type: boolean
+              product:
+                $ref: '#/components/schemas/Product'
+        totals:
+          type: object
+          properties:
+            subtotal:
+              type: integer
+            discount:
+              type: integer
+            serviceFee:
+              type: integer
+            shipping:
+              type: object
+            payment:
+              type: object
+            total:
+              type: integer
+        payment:
+          type: object
+        shipping:
+          type: object
+        address:
+          type: object
+
+    CartItem:
+      type: object
+      properties:
+        productId:
+          type: string
+        qty:
+          type: integer
+        variant:
+          type: string
+        selected:
+          type: boolean
+        product:
+          $ref: '#/components/schemas/Product'
+
+paths:
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                          tokenType:
+                            type: string
+                          expiresAt:
+                            type: string
+                            format: date-time
+                          user:
+                            $ref: '#/components/schemas/User'
+        '401':
+          description: Kredensial tidak valid
+
+  /auth/me:
+    get:
+      summary: Dapatkan data current user
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data user berhasil diambil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  /auth/demo-users:
+    get:
+      summary: Dapatkan daftar akun demo (untuk testing)
+      tags: [Auth]
+      responses:
+        '200':
+          description: List of demo users
+
+  /account/register:
+    post:
+      summary: Registrasi user baru
+      tags: [Account]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role, phone]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [buyer, seller]
+                phone:
+                  type: string
+      responses:
+        '201':
+          description: Berhasil registrasi
+
+  /account/me:
+    get:
+      summary: Dapatkan data profil lengkap
+      tags: [Account]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil user
+    patch:
+      summary: Update data profil
+      tags: [Account]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+      responses:
+        '200':
+          description: Profil berhasil diperbarui
+
+  /account/addresses:
+    get:
+      summary: Dapatkan daftar alamat user
+      tags: [Account]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of addresses
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserAddress'
+    post:
+      summary: Tambah/Update alamat
+      tags: [Account]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAddress'
+      responses:
+        '201':
+          description: Alamat berhasil disimpan
+
+  /marketplace/browse_produk:
+    get:
+      summary: Cari dan filter produk
+      tags: [Marketplace, Products]
+      parameters:
+        - in: query
+          name: keyword
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [price_asc, price_desc, rating, sold, best-selling]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of products with pagination
+
+  /marketplace/products/{id}:
+    get:
+      summary: Detail produk
+      tags: [Marketplace, Products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product detail
+
+  /marketplace/categories:
+    get:
+      summary: Daftar kategori
+      tags: [Marketplace]
+      responses:
+        '200':
+          description: List of categories
+
+  /marketplace/cart:
+    get:
+      summary: Lihat keranjang belanja
+      tags: [Platform, Cart]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data cart
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/CartItem'
+                          subtotal:
+                            type: integer
+                          count:
+                            type: integer
+    post:
+      summary: Tambah item ke cart
+      tags: [Platform, Cart]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, qty]
+              properties:
+                productId:
+                  type: string
+                qty:
+                  type: integer
+                variant:
+                  type: string
+                selected:
+                  type: boolean
+      responses:
+        '200':
+          description: Cart summary
+
+  /marketplace/cart/sync:
+    post:
+      summary: Sinkronisasi cart lokal (guest) dengan server
+      tags: [Platform, Cart]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      qty:
+                        type: integer
+                      variant:
+                        type: string
+                      selected:
+                        type: boolean
+      responses:
+        '200':
+          description: Cart synchronized
+
+  /marketplace/cart/{product_id}:
+    patch:
+      summary: Update cart item
+      tags: [Platform, Cart]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: product_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qty:
+                  type: integer
+                variant:
+                  type: string
+                selected:
+                  type: boolean
+      responses:
+        '200':
+          description: Cart updated
+
+    delete:
+      summary: Hapus cart item
+      tags: [Platform, Cart]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: product_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item removed
+
+  /marketplace/checkout/calculate:
+    post:
+      summary: Kalkulasi total checkout (simulasi)
+      tags: [Platform, Checkout]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                addressId:
+                  type: string
+                shipping:
+                  type: object
+                payment:
+                  type: object
+                voucherCode:
+                  type: string
+      responses:
+        '200':
+          description: Totals calculation result
+
+  /marketplace/cart/checkout:
+    post:
+      summary: Proses checkout keranjang (Buat Pesanan)
+      tags: [Platform, Checkout]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                addressId:
+                  type: string
+                shipping:
+                  type: object
+                payment:
+                  type: object
+                voucherCode:
+                  type: string
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FrontendOrder'
+
+  /marketplace/orders:
+    get:
+      summary: Daftar pesanan saya
+      tags: [Platform, Orders]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of orders
+
+  /marketplace/orders/{id}:
+    get:
+      summary: Detail pesanan
+      tags: [Platform, Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FrontendOrder'
+
+  /marketplace/orders/{id}/cancel:
+    patch:
+      summary: Batalkan pesanan
+      tags: [Platform, Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Order cancelled
+
+  /marketplace/seller/dashboard:
+    get:
+      summary: Data statistik dashboard seller
+      tags: [Platform, Seller]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Seller dashboard data
+
+  /marketplace/seller/products:
+    get:
+      summary: Daftar produk toko saya
+      tags: [Platform, Seller]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of seller's products
+
+    post:
+      summary: Tambah produk baru
+      tags: [Platform, Seller]
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: integer
+                stock:
+                  type: integer
+                category:
+                  type: string
+                image:
+                  type: string
+      responses:
+        '201':
+          description: Product created
+
+  /marketplace/seller/orders:
+    get:
+      summary: Daftar pesanan masuk ke toko
+      tags: [Platform, Seller]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of seller's orders
+
+  /marketplace/seller/orders/{id}/status:
+    patch:
+      summary: Update status pesanan (e.g. READY_FOR_SHIPMENT, SHIPPED)
+      tags: [Platform, Seller]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Order status updated
