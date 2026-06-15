@@ -13,7 +13,7 @@ func Connect(cfg config.Config) (*gorm.DB, error) {
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&models.User{},
 		&models.UserAddress{},
 		&models.Store{},
@@ -29,5 +29,14 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Notification{},
 		&models.Shipment{},
 		&models.AuditLog{},
-	)
+	); err != nil {
+		return err
+	}
+
+	// Relasi product-store diperkaya saat query agar StoreID non-primary tetap aman
+	// untuk katalog lama dan seed frontend baru.
+	if db.Migrator().HasConstraint(&models.Store{}, "fk_products_store") {
+		return db.Migrator().DropConstraint(&models.Store{}, "fk_products_store")
+	}
+	return nil
 }

@@ -1,17 +1,44 @@
-import { createOrder, getOrder, getOrders, updateOrderStatus } from "../utils/storage.js";
+import { fetchOrder, fetchOrders, processPayment } from "../api/marketplaceApi.js";
+import {
+  createOrder as createLocalOrder,
+  getOrder as getLocalOrder,
+  getOrders as getLocalOrders,
+  updateOrderStatus as updateLocalOrderStatus,
+} from "../utils/storage.js";
+import { isApiSession } from "../utils/storage.js";
 
 export async function listOrders() {
-  return getOrders();
+  if (!isApiSession()) return getLocalOrders();
+  try {
+    return await fetchOrders() || [];
+  } catch (error) {
+    if (!error.isNetworkError) throw error;
+    return getLocalOrders();
+  }
 }
 
 export async function findOrder(id) {
-  return getOrder(id);
+  if (!isApiSession()) return getLocalOrder(id);
+  try {
+    return await fetchOrder(id);
+  } catch (error) {
+    if (!error.isNetworkError && error.status !== 404) throw error;
+    return getLocalOrder(id);
+  }
 }
 
 export async function placeOrder(payload) {
-  return createOrder(payload);
+  if (payload?.id && payload?.totals) return payload;
+  return createLocalOrder(payload);
 }
 
 export async function setOrderStatus(id, status) {
-  return updateOrderStatus(id, status);
+  if (status === "Pembayaran Diproses" && isApiSession()) {
+    try {
+      return await processPayment(id);
+    } catch (error) {
+      if (!error.isNetworkError) throw error;
+    }
+  }
+  return updateLocalOrderStatus(id, status);
 }

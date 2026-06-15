@@ -3,6 +3,7 @@ import { getProductById } from "../data/products.js";
 const KEYS = {
   user: "pasarkita_demo_user",
   users: "pasarkita_demo_users",
+  token: "pasarkita_api_token",
   cart: "pasarkita_demo_cart",
   orders: "pasarkita_demo_orders",
   pendingRoute: "pasarkita_pending_route",
@@ -31,12 +32,36 @@ function write(key, value) {
   return value;
 }
 
+function withUserDefaults(user) {
+  if (!user) return null;
+  return {
+    ...user,
+    avatar: user.avatar || String(user.name || "PK").slice(0, 2).toUpperCase(),
+    addresses: user.addresses || [],
+  };
+}
+
 export function getUser() {
-  return read(KEYS.user, null);
+  return withUserDefaults(read(KEYS.user, null));
+}
+
+export function getToken() {
+  return localStorage.getItem(KEYS.token) || "";
 }
 
 export function isLoggedIn() {
-  return Boolean(getUser());
+  return Boolean(getUser() && getToken());
+}
+
+export const isAuthenticated = isLoggedIn;
+
+export function isApiSession() {
+  return isLoggedIn() && getToken() !== "offline-demo";
+}
+
+export function persistAuthSession({ token, user }) {
+  if (token) localStorage.setItem(KEYS.token, token);
+  return write(KEYS.user, withUserDefaults(user));
 }
 
 export function login(email) {
@@ -67,11 +92,12 @@ export function register(payload) {
 }
 
 export function updateUser(updates) {
-  return write(KEYS.user, { ...getUser(), ...updates });
+  return write(KEYS.user, withUserDefaults({ ...getUser(), ...updates }));
 }
 
 export function logout() {
   localStorage.removeItem(KEYS.user);
+  localStorage.removeItem(KEYS.token);
   window.dispatchEvent(new CustomEvent("pasarkita:state", { detail: { key: KEYS.user } }));
 }
 
@@ -130,11 +156,12 @@ export function getOrder(id) {
 }
 
 export function createOrder(details) {
-  const items = getCartItems().filter((item) => item.selected);
+  const items = details.items || getCartItems().filter((item) => item.selected);
   const order = {
     id: `PK-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
     createdAt: new Date().toISOString(),
     status: "Menunggu Pembayaran",
+    isLocal: true,
     items,
     ...details,
   };

@@ -1,11 +1,12 @@
-import { categories } from "../data/categories.js";
-import { products } from "../data/products.js";
-import { stores } from "../data/stores.js";
+import { getCategories } from "../services/categoryService.js";
+import { getProducts } from "../services/productService.js";
+import { getStores } from "../services/storeService.js";
 import { ProductGrid } from "../components/ProductGrid.js";
 import { CategoryCard } from "../components/CategoryCard.js";
 import { formatNumber } from "../utils/formatCurrency.js";
 
-export function render() {
+export async function render() {
+  const [products, stores, categories] = await Promise.all([getProducts(), getStores(), getCategories()]);
   const recommended = products.filter((product) => product.featured).slice(0, 8);
   const bestSelling = [...products].sort((a, b) => b.sold - a.sold).slice(0, 6);
   const flashSale = products.filter((product) => product.discount >= 15).slice(0, 5);
@@ -24,7 +25,7 @@ export function render() {
         </article>
         <aside class="hero-visual">
           <div class="hero-orb"></div>
-          <img src="${products[1].image}" alt="Produk unggulan PasarKita" />
+          <img src="${products[1]?.image || products[0]?.image}" alt="Produk unggulan PasarKita" />
           <div class="floating-card float-top"><span data-lucide="shield-check"></span><div><strong>Pembayaran Aman</strong><small>Dilindungi PasarKita</small></div></div>
           <div class="floating-card float-bottom"><span data-lucide="truck"></span><div><strong>Gratis Ongkir</strong><small>Min. belanja Rp100rb</small></div></div>
         </aside>

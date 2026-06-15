@@ -33,26 +33,44 @@ func NewMarketplaceService(products *repositories.ProductRepository, orders *rep
 
 type BrowseParams struct {
 	Keyword  string
-	Kategori string
+	Category string
+	Location string
 	Sort     string
+	MinPrice int64
+	MaxPrice int64
+	Rating   float64
+	Promo    bool
 	Page     int
 	Limit    int
 }
 
 type ProductInput struct {
-	ProductID   string `json:"product_id"`
-	SellerID    string `json:"seller_id"`
-	StoreID     string `json:"store_id"`
-	NamaProduk  string `json:"nama_produk"`
-	Deskripsi   string `json:"deskripsi"`
-	Harga       int64  `json:"harga"`
-	Stok        int    `json:"stok"`
-	Kategori    string `json:"kategori"`
-	ImageURL    string `json:"image_url"`
-	BeratGram   int    `json:"berat_gram"`
-	Kondisi     string `json:"kondisi"`
-	Lokasi      string `json:"lokasi"`
-	StatusAktif *bool  `json:"status_aktif"`
+	ProductID     string   `json:"product_id"`
+	ID            string   `json:"id"`
+	SellerID      string   `json:"seller_id"`
+	StoreID       string   `json:"store_id"`
+	NamaProduk    string   `json:"nama_produk"`
+	Name          string   `json:"name"`
+	Deskripsi     string   `json:"deskripsi"`
+	Description   string   `json:"description"`
+	Harga         int64    `json:"harga"`
+	Price         int64    `json:"price"`
+	OriginalPrice int64    `json:"originalPrice"`
+	Discount      int      `json:"discount"`
+	Stok          int      `json:"stok"`
+	Stock         int      `json:"stock"`
+	Kategori      string   `json:"kategori"`
+	Category      string   `json:"category"`
+	CategoryID    string   `json:"categoryId"`
+	ImageURL      string   `json:"image_url"`
+	Image         string   `json:"image"`
+	Variants      []string `json:"variants"`
+	Featured      bool     `json:"featured"`
+	Highlights    []string `json:"highlights"`
+	BeratGram     int      `json:"berat_gram"`
+	Kondisi       string   `json:"kondisi"`
+	Lokasi        string   `json:"lokasi"`
+	StatusAktif   *bool    `json:"status_aktif"`
 }
 
 type CheckoutInput struct {
@@ -63,7 +81,7 @@ type CheckoutInput struct {
 }
 
 type PaymentIntegrationInput struct {
-	OrderID string `json:"order_id"`
+	OrderID string `json:"orderId"`
 }
 
 func (s *MarketplaceService) BrowseProducts(params BrowseParams) ([]models.Product, int64, error) {
@@ -73,7 +91,11 @@ func (s *MarketplaceService) BrowseProducts(params BrowseParams) ([]models.Produ
 	if params.Limit <= 0 || params.Limit > 100 {
 		params.Limit = 10
 	}
-	return s.products.Browse(params.Keyword, params.Kategori, params.Sort, params.Page, params.Limit)
+	return s.products.Browse(repositories.ProductBrowseFilter{
+		Keyword: params.Keyword, Category: params.Category, Location: params.Location,
+		Sort: params.Sort, MinPrice: params.MinPrice, MaxPrice: params.MaxPrice,
+		Rating: params.Rating, Promo: params.Promo, Page: params.Page, Limit: params.Limit,
+	})
 }
 
 func (s *MarketplaceService) GetProduct(productID string) (*models.Product, error) {
@@ -89,6 +111,7 @@ func (s *MarketplaceService) ListSellerProducts() ([]models.Product, error) {
 }
 
 func (s *MarketplaceService) SaveProduct(input ProductInput) (*models.Product, error) {
+	input.normalize()
 	if strings.TrimSpace(input.SellerID) == "" || strings.TrimSpace(input.NamaProduk) == "" || strings.TrimSpace(input.Kategori) == "" || strings.TrimSpace(input.Deskripsi) == "" {
 		return nil, fmt.Errorf("%w: seller_id, nama_produk, kategori, dan deskripsi wajib diisi", ErrBadRequest)
 	}
@@ -120,9 +143,15 @@ func (s *MarketplaceService) SaveProduct(input ProductInput) (*models.Product, e
 	product.NamaProduk = input.NamaProduk
 	product.Deskripsi = input.Deskripsi
 	product.Harga = input.Harga
+	product.OriginalPrice = input.OriginalPrice
+	product.Discount = input.Discount
 	product.Stok = input.Stok
+	product.CategoryID = input.CategoryID
 	product.Kategori = input.Kategori
 	product.ImageURL = input.ImageURL
+	product.Variants = input.Variants
+	product.Featured = input.Featured
+	product.Highlights = input.Highlights
 	product.BeratGram = input.BeratGram
 	if product.BeratGram <= 0 {
 		product.BeratGram = 500
@@ -138,6 +167,39 @@ func (s *MarketplaceService) SaveProduct(input ProductInput) (*models.Product, e
 		return nil, err
 	}
 	return product, nil
+}
+
+func (input *ProductInput) normalize() {
+	if input.ProductID == "" {
+		input.ProductID = input.ID
+	}
+	if input.NamaProduk == "" {
+		input.NamaProduk = input.Name
+	}
+	if input.Deskripsi == "" {
+		input.Deskripsi = input.Description
+	}
+	if input.Harga == 0 {
+		input.Harga = input.Price
+	}
+	if input.Stok == 0 {
+		input.Stok = input.Stock
+	}
+	if input.Kategori == "" {
+		input.Kategori = input.Category
+	}
+	if input.CategoryID == "" {
+		input.CategoryID = strings.ToLower(strings.ReplaceAll(input.Kategori, " ", "-"))
+	}
+	if input.ImageURL == "" {
+		input.ImageURL = input.Image
+	}
+	if input.OriginalPrice == 0 {
+		input.OriginalPrice = input.Harga
+	}
+	if len(input.Highlights) == 0 {
+		input.Highlights = []string{"Kualitas terkurasi", "Dikirim maksimal 24 jam", "Garansi retur 7 hari", "Kemasan aman"}
+	}
 }
 
 func (s *MarketplaceService) SetProductStatus(productID string, active bool) (*models.Product, error) {

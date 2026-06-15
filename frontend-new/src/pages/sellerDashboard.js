@@ -3,8 +3,9 @@ import { SellerTable } from "../components/SellerTable.js";
 import { categories } from "../data/categories.js";
 import { addSellerProduct, getSellerDashboard } from "../services/sellerService.js";
 import { formatCurrency, formatNumber } from "../utils/formatCurrency.js";
+import { getUser } from "../utils/storage.js";
 import { sellerProductSchema, showFormErrors, validate } from "../utils/validator.js";
-import { toast } from "../utils/ui.js";
+import { escapeHtml, toast } from "../utils/ui.js";
 
 function sidebar() {
   return `
@@ -41,12 +42,14 @@ function productModal() {
 
 export async function render() {
   const dashboard = await getSellerDashboard();
+  const activeUser = getUser();
+  const sellerName = activeUser?.role === "seller" ? activeUser.name : "Nusa Techspace";
   return `
     <section class="seller-shell">
       <div class="seller-sidebar-backdrop" id="seller-sidebar-backdrop"></div>
       ${sidebar()}
       <main class="seller-main">
-        <div class="seller-topbar"><button class="seller-menu-toggle" id="seller-menu-toggle" type="button" aria-label="Buka menu seller"><span data-lucide="menu"></span></button><div><span class="eyebrow">Pusat Seller</span><h1>Selamat datang, Nusa Techspace</h1><p>Berikut performa tokomu hari ini.</p></div><button class="btn btn-primary" id="add-product-demo"><span data-lucide="plus"></span>Tambah Produk</button></div>
+        <div class="seller-topbar"><button class="seller-menu-toggle" id="seller-menu-toggle" type="button" aria-label="Buka menu seller"><span data-lucide="menu"></span></button><div><span class="eyebrow">Pusat Seller</span><h1>Selamat datang, ${escapeHtml(sellerName)}</h1><p>Berikut performa tokomu hari ini.</p></div><button class="btn btn-primary" id="add-product-demo"><span data-lucide="plus"></span>Tambah Produk</button></div>
         ${SellerStats(dashboard.stats)}
         <section class="seller-chart-grid">
           <article class="seller-panel seller-chart-panel"><div class="seller-panel-heading"><div><h2>Penjualan Mingguan</h2><p>Omzet selama tujuh hari terakhir.</p></div><span class="badge badge-success badge-outline">+18,4%</span></div><div class="chart-wrap"><canvas id="sales-chart"></canvas></div></article>
@@ -133,12 +136,16 @@ export async function afterRender({ refreshIcons }) {
       return;
     }
     const category = categories.find((item) => item.id === result.data.categoryId);
-    await addSellerProduct({ ...result.data, category: category.name });
-    dashboard = await getSellerDashboard();
-    productTable.setData(dashboard.products);
-    modal.close();
-    event.currentTarget.reset();
-    toast("Produk baru berhasil ditambahkan.");
-    refreshIcons();
+    try {
+      await addSellerProduct({ ...result.data, category: category.name });
+      dashboard = await getSellerDashboard();
+      productTable.setData(dashboard.products);
+      modal.close();
+      event.currentTarget.reset();
+      toast("Produk baru berhasil ditambahkan.");
+      refreshIcons();
+    } catch (error) {
+      toast(error.message, "error");
+    }
   });
 }

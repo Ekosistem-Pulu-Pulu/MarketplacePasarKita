@@ -1,37 +1,25 @@
 import { CheckoutSummary } from "../components/CheckoutSummary.js";
+import { getCheckoutTotals, getShippingOptions, paymentOptions, submitCheckout } from "../services/checkoutService.js";
+import { listCartItems } from "../services/cartService.js";
+import { saveCheckoutAddress } from "../services/accountService.js";
 import { placeOrder } from "../services/orderService.js";
 import { formatCurrency } from "../utils/formatCurrency.js";
-import { getCartItems, getUser, updateUser } from "../utils/storage.js";
+import { getUser } from "../utils/storage.js";
 import { checkoutSchema, showFormErrors, validate } from "../utils/validator.js";
 import { emptyState, escapeHtml, toast } from "../utils/ui.js";
 
-const shippingOptions = [
-  { id: "regular", name: "Reguler Hemat", carrier: "KitaExpress", eta: "3-5 hari", price: 16000 },
-  { id: "express", name: "Express", carrier: "NusaLog", eta: "1-2 hari", price: 29000 },
-  { id: "same-day", name: "Same Day", carrier: "Gercep", eta: "Hari ini", price: 45000 },
-];
+let checkoutState = { items: [], shippingOptions: [], totals: null };
 
-const paymentOptions = [
-  { id: "virtual-account", name: "Virtual Account", description: "BCA, Mandiri, BNI, BRI", icon: "landmark", fee: 4000 },
-  { id: "ewallet", name: "E-Wallet", description: "GoPay, OVO, DANA", icon: "wallet-cards", fee: 2500 },
-  { id: "cod", name: "Bayar di Tempat", description: "Tunai saat pesanan tiba", icon: "banknote", fee: 7500 },
-];
-
-function calculate(items, shippingId = "regular", paymentId = "virtual-account") {
-  const subtotal = items.reduce((total, item) => total + item.product.price * item.qty, 0);
-  const discount = subtotal >= 500000 ? 25000 : 0;
-  const shipping = shippingOptions.find((option) => option.id === shippingId) || shippingOptions[0];
-  const payment = paymentOptions.find((option) => option.id === paymentId) || paymentOptions[0];
-  const serviceFee = 2500;
-  return { subtotal, discount, shipping, payment, serviceFee, total: subtotal - discount + shipping.price + payment.fee + serviceFee };
-}
-
-export function render() {
-  const items = getCartItems().filter((item) => item.selected);
+export async function render() {
+  const items = (await listCartItems()).filter((item) => item.selected);
   const user = getUser();
   if (!items.length) return `<section class="container page-space">${emptyState({ icon: "package-open", title: "Belum ada produk untuk checkout", message: "Pilih produk di keranjang terlebih dahulu.", action: `<a class="btn btn-primary" href="#/cart">Kembali ke Keranjang</a>` })}</section>`;
-  const totals = calculate(items);
+  const shippingOptions = await getShippingOptions(items.reduce((total, item) => total + item.qty, 0));
+  const shipping = shippingOptions[0];
+  const payment = paymentOptions[0];
   const address = user.addresses?.[0] || {};
+  const totals = await getCheckoutTotals({ items, addressId: address.id, shipping, payment });
+  checkoutState = { items, shippingOptions, totals };
   const phone = String(address.phone || user.phone || "").replace(/\D/g, "");
 
   return `
@@ -40,7 +28,7 @@ export function render() {
     <form class="container checkout-layout" id="checkout-form" novalidate>
       <main class="checkout-main">
         <section class="checkout-card">
-          <div class="checkout-card-heading"><span data-lucide="map-pin"></span><div><h2>Alamat Pengiriman</h2><p>Pastikan data penerima dan alamat sudah lengkap.</p></div><span class="badge badge-success badge-outline">Alamat aktif</span></div>
+          <div class="checkout-card-heading"><span data-lucide="map-pin"></span><div><h2>Alamat Pengiriman</h2><p>Alamat ini akan digunakan untuk pengiriman pesananmu.</p></div><span class="badge badge-success badge-outline">Alamat aktif</span></div>
           <div class="checkout-address-form">
             <label><span>Nama penerima</span><input class="input input-bordered" name="recipient" value="${escapeHtml(address.recipient || user.name)}" /><small class="form-error" data-error-for="recipient"></small></label>
             <label><span>Nomor telepon</span><input class="input input-bordered" name="phone" value="${escapeHtml(phone)}" /><small class="form-error" data-error-for="phone"></small></label>
@@ -52,12 +40,12 @@ export function render() {
           <div class="checkout-products">${items.map((item) => `<article><img src="${item.product.image}" alt="${escapeHtml(item.product.name)}" /><div><small>${item.product.store.name}</small><strong>${escapeHtml(item.product.name)}</strong><span>${item.variant || "Variasi standar"} &middot; ${item.qty} barang</span></div><b>${formatCurrency(item.product.price * item.qty)}</b></article>`).join("")}</div>
         </section>
         <section class="checkout-card">
-          <div class="checkout-card-heading"><span data-lucide="truck"></span><div><h2>Pilih Pengiriman</h2><p>Estimasi dihitung dari lokasi toko ke alamatmu.</p></div></div>
+          <div class="checkout-card-heading"><span data-lucide="truck"></span><div><h2>Pilih Pengiriman</h2><p>Ongkir menyesuaikan layanan pengiriman yang dipilih.</p></div></div>
           <div class="choice-list">${shippingOptions.map((option, index) => `<label class="choice-card ${index === 0 ? "selected" : ""}"><input type="radio" name="shipping" value="${option.id}" ${index === 0 ? "checked" : ""} /><span data-lucide="truck"></span><div><strong>${option.name}</strong><small>${option.carrier} &middot; Tiba ${option.eta}</small></div><b>${formatCurrency(option.price)}</b></label>`).join("")}</div>
         </section>
         <section class="checkout-card">
           <div class="checkout-card-heading"><span data-lucide="credit-card"></span><div><h2>Metode Pembayaran</h2><p>Pilih cara pembayaran yang paling nyaman.</p></div></div>
-          <div class="choice-list">${paymentOptions.map((option, index) => `<label class="choice-card ${index === 0 ? "selected" : ""}"><input type="radio" name="payment" value="${option.id}" ${index === 0 ? "checked" : ""} /><span data-lucide="${option.icon}"></span><div><strong>${option.name}</strong><small>${option.description}</small></div><b>${option.fee ? `+${formatCurrency(option.fee)}` : "Gratis"}</b></label>`).join("")}</div>
+          <div class="choice-list">${paymentOptions.map((option, index) => `<label class="choice-card ${index === 0 ? "selected" : ""}"><input type="radio" name="payment" value="${option.id}" ${index === 0 ? "checked" : ""} /><span data-lucide="${option.icon}"></span><div><strong>${option.name}</strong><small>${option.description}</small></div><b>${option.fee ? `+${formatCurrency(option.fee)}` : "Sesuai gateway"}</b></label>`).join("")}</div>
         </section>
       </main>
       <div id="checkout-summary">${CheckoutSummary(totals)}</div>
@@ -66,15 +54,28 @@ export function render() {
 }
 
 export function afterRender({ navigate, refreshIcons }) {
-  const items = getCartItems().filter((item) => item.selected);
   const form = document.querySelector("#checkout-form");
-  form?.querySelectorAll("input[type=radio]").forEach((input) => input.addEventListener("change", () => {
+
+  async function refreshTotals() {
+    const data = new FormData(form);
+    const shipping = checkoutState.shippingOptions.find((item) => item.id === data.get("shipping")) || checkoutState.shippingOptions[0];
+    const payment = paymentOptions.find((item) => item.id === data.get("payment")) || paymentOptions[0];
+    checkoutState.totals = await getCheckoutTotals({
+      items: checkoutState.items,
+      addressId: getUser()?.addresses?.[0]?.id,
+      shipping,
+      payment,
+    });
+    document.querySelector("#checkout-summary").innerHTML = CheckoutSummary(checkoutState.totals);
+    refreshIcons();
+  }
+
+  form?.querySelectorAll("input[type=radio]").forEach((input) => input.addEventListener("change", async () => {
     input.closest(".choice-list").querySelectorAll(".choice-card").forEach((card) => card.classList.remove("selected"));
     input.closest(".choice-card").classList.add("selected");
-    const data = new FormData(form);
-    document.querySelector("#checkout-summary").innerHTML = CheckoutSummary(calculate(items, data.get("shipping"), data.get("payment")));
-    refreshIcons();
+    await refreshTotals();
   }));
+
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(form).entries());
@@ -84,11 +85,22 @@ export function afterRender({ navigate, refreshIcons }) {
       toast("Form checkout belum valid.", "error");
       return;
     }
-    const totals = calculate(items, result.data.shipping, result.data.payment);
-    const activeAddress = { id: "addr-home", label: "Rumah", recipient: result.data.recipient, phone: result.data.phone, address: result.data.address };
-    updateUser({ addresses: [activeAddress] });
-    const order = await placeOrder({ address: activeAddress, shipping: totals.shipping, payment: totals.payment, totals });
-    toast("Checkout berhasil. Selesaikan pembayaran.");
-    navigate(`/payment/${order.id}`);
+    try {
+      const address = await saveCheckoutAddress(result.data);
+      const shipping = checkoutState.shippingOptions.find((item) => item.id === result.data.shipping);
+      const payment = paymentOptions.find((item) => item.id === result.data.payment);
+      const totals = await getCheckoutTotals({ items: checkoutState.items, addressId: address.id, shipping, payment });
+      let order;
+      try {
+        order = await placeOrder(await submitCheckout({ addressId: address.id, shipping, payment }));
+      } catch (error) {
+        if (!error.isNetworkError) throw error;
+        order = await placeOrder({ items: checkoutState.items, address, shipping, payment, totals });
+      }
+      toast("Checkout berhasil. Selesaikan pembayaran.");
+      navigate(`/payment/${order.id}`);
+    } catch (error) {
+      toast(error.message, "error");
+    }
   });
 }

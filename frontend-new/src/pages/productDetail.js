@@ -1,20 +1,24 @@
-import { getProductById, products } from "../data/products.js";
+import { getProduct, getSimilarProducts, getProducts } from "../services/productService.js";
+import { addToCart } from "../services/cartService.js";
 import { ProductGrid } from "../components/ProductGrid.js";
 import { formatCurrency, formatNumber } from "../utils/formatCurrency.js";
-import { addCartItem, isLoggedIn, setPendingRoute } from "../utils/storage.js";
+import { isLoggedIn, setPendingRoute } from "../utils/storage.js";
 import { emptyState, escapeHtml, toast } from "../utils/ui.js";
 
-export function render({ params }) {
-  const product = getProductById(params.id);
+let activeProduct;
+
+export async function render({ params }) {
+  const product = await getProduct(params.id);
   if (!product) return emptyState({ icon: "package-x", title: "Produk tidak ditemukan", message: "Produk mungkin sudah tidak tersedia.", action: `<a class="btn btn-primary" href="#/products">Kembali ke katalog</a>` });
-  const similar = products.filter((item) => item.categoryId === product.categoryId && item.id !== product.id).slice(0, 4);
+  activeProduct = product;
+  const [similar, categoryProducts] = await Promise.all([getSimilarProducts(product, 4), getProducts({ category: product.categoryId })]);
 
   return `
     <section class="container breadcrumbs"><a href="#/">Home</a><span>/</span><a href="#/category/${product.categoryId}">${product.category}</a><span>/</span><strong>${escapeHtml(product.name)}</strong></section>
     <section class="container detail-layout">
       <div class="detail-gallery">
         <div class="detail-main-image"><img src="${product.image}" alt="${escapeHtml(product.name)}" /><button class="wishlist-float" aria-label="Simpan produk"><span data-lucide="heart"></span></button></div>
-        <div class="thumbnail-row">${[product.image, ...products.filter((item) => item.categoryId === product.categoryId).slice(0, 3).map((item) => item.image)].map((image, index) => `<button class="${index === 0 ? "active" : ""}" data-detail-image="${image}"><img src="${image}" alt="" /></button>`).join("")}</div>
+        <div class="thumbnail-row">${[product.image, ...categoryProducts.filter((item) => item.id !== product.id).slice(0, 3).map((item) => item.image)].map((image, index) => `<button class="${index === 0 ? "active" : ""}" data-detail-image="${image}"><img src="${image}" alt="" /></button>`).join("")}</div>
       </div>
       <article class="detail-info">
         <span class="detail-category">${product.category}</span>
@@ -36,7 +40,7 @@ export function render({ params }) {
 }
 
 export function afterRender({ params, navigate }) {
-  const product = getProductById(params.id);
+  const product = activeProduct;
   let qty = 1;
   let variant = product.variants[0] || "";
   const input = document.querySelector("#detail-qty");
@@ -52,9 +56,12 @@ export function afterRender({ params, navigate }) {
     button.classList.add("active");
     document.querySelector(".detail-main-image img").src = button.dataset.detailImage;
   }));
-  document.querySelector("#detail-add-cart")?.addEventListener("click", () => { addCartItem(product.id, qty, variant); toast("Produk ditambahkan ke keranjang."); });
-  document.querySelector("#detail-buy-now")?.addEventListener("click", () => {
-    addCartItem(product.id, qty, variant);
+  document.querySelector("#detail-add-cart")?.addEventListener("click", async () => {
+    await addToCart(product.id, qty, variant);
+    toast("Produk ditambahkan ke keranjang.");
+  });
+  document.querySelector("#detail-buy-now")?.addEventListener("click", async () => {
+    await addToCart(product.id, qty, variant);
     if (!isLoggedIn()) { setPendingRoute("/checkout"); navigate("/login"); return; }
     navigate("/checkout");
   });

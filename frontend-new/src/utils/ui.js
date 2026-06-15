@@ -27,8 +27,14 @@ export function toast(message, type = "success") {
 
 export function animatePage(root = document.querySelector("#view-root")) {
   if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  gsap.fromTo(root.children, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.38, stagger: 0.04, ease: "power2.out", clearProps: "transform,opacity" });
-  gsap.fromTo(root.querySelectorAll(".product-card, .category-card, .store-card"), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.42, stagger: 0.025, ease: "power2.out", delay: 0.08, clearProps: "transform,opacity" });
+  const sections = [...root.children];
+  const cards = [...root.querySelectorAll(".product-card, .category-card, .store-card")];
+  if (sections.length) {
+    gsap.fromTo(sections, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.38, stagger: 0.04, ease: "power2.out", clearProps: "transform,opacity" });
+  }
+  if (cards.length) {
+    gsap.fromTo(cards, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.42, stagger: 0.025, ease: "power2.out", delay: 0.08, clearProps: "transform,opacity" });
+  }
 }
 
 export function confirmDialog({ title, message, confirmLabel = "Ya, lanjutkan", danger = false }) {

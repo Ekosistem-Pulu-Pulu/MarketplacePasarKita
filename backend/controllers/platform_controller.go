@@ -119,7 +119,7 @@ func (c *PlatformController) CheckoutCart(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return created(ctx, order)
+	return created(ctx, c.service.PresentOrder(order))
 }
 
 func (c *PlatformController) ListOrders(ctx *fiber.Ctx) error {
@@ -131,7 +131,7 @@ func (c *PlatformController) ListOrders(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return ok(ctx, orders)
+	return ok(ctx, c.service.PresentOrders(orders))
 }
 
 func (c *PlatformController) ListSellerOrders(ctx *fiber.Ctx) error {
@@ -143,7 +143,47 @@ func (c *PlatformController) ListSellerOrders(ctx *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	return ok(ctx, orders)
+	return ok(ctx, c.service.PresentOrders(orders))
+}
+
+func (c *PlatformController) ListSellerProducts(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	products, err := c.service.ListSellerProducts(claims.UserID)
+	if err != nil {
+		return err
+	}
+	return ok(ctx, products)
+}
+
+func (c *PlatformController) SaveSellerProduct(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	var input services.ProductInput
+	if err := ctx.BodyParser(&input); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
+	}
+	product, err := c.service.SaveSellerProduct(claims.UserID, input)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	return created(ctx, product)
+}
+
+func (c *PlatformController) SellerDashboard(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	dashboard, err := c.service.SellerDashboard(claims.UserID)
+	if err != nil {
+		return err
+	}
+	return ok(ctx, dashboard)
 }
 
 func (c *PlatformController) CancelOrder(ctx *fiber.Ctx) error {
@@ -159,7 +199,7 @@ func (c *PlatformController) CancelOrder(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return ok(ctx, order)
+	return ok(ctx, c.service.PresentOrder(order))
 }
 
 func (c *PlatformController) UpdateSellerOrderStatus(ctx *fiber.Ctx) error {
@@ -177,7 +217,7 @@ func (c *PlatformController) UpdateSellerOrderStatus(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return ok(ctx, order)
+	return ok(ctx, c.service.PresentOrder(order))
 }
 
 func (c *PlatformController) OrderTracking(ctx *fiber.Ctx) error {
@@ -198,6 +238,10 @@ func (c *PlatformController) ListStores(ctx *fiber.Ctx) error {
 		return err
 	}
 	return ok(ctx, stores)
+}
+
+func (c *PlatformController) Categories(ctx *fiber.Ctx) error {
+	return ok(ctx, c.service.Categories())
 }
 
 func (c *PlatformController) GetStore(ctx *fiber.Ctx) error {

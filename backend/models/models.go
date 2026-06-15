@@ -14,71 +14,82 @@ func HashPassword(password, secret string) string {
 
 type User struct {
 	ID            uint      `gorm:"primaryKey" json:"-"`
-	UserID        string    `gorm:"uniqueIndex;size:64;not null" json:"user_id"`
+	UserID        string    `gorm:"uniqueIndex;size:64;not null" json:"id"`
 	Name          string    `gorm:"size:120;not null" json:"name"`
 	Email         string    `gorm:"uniqueIndex;size:160;not null" json:"email"`
 	PasswordHash  string    `gorm:"size:128;not null" json:"-"`
 	Role          string    `gorm:"size:48;not null" json:"role"`
 	Phone         string    `gorm:"size:32" json:"phone"`
-	EmailVerified bool      `gorm:"not null;default:false" json:"email_verified"`
+	EmailVerified bool      `gorm:"not null;default:false" json:"emailVerified"`
 	Status        string    `gorm:"size:32;not null;default:ACTIVE" json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type UserAddress struct {
 	ID          uint      `gorm:"primaryKey" json:"-"`
-	AddressID   string    `gorm:"uniqueIndex;size:48;not null" json:"address_id"`
-	UserID      string    `gorm:"size:64;index;not null" json:"user_id"`
+	AddressID   string    `gorm:"uniqueIndex;size:48;not null" json:"id"`
+	UserID      string    `gorm:"size:64;index;not null" json:"-"`
 	Label       string    `gorm:"size:80;not null" json:"label"`
 	Recipient   string    `gorm:"size:120;not null" json:"recipient"`
 	Phone       string    `gorm:"size:32;not null" json:"phone"`
-	AddressLine string    `gorm:"type:text;not null" json:"address_line"`
+	AddressLine string    `gorm:"type:text;not null" json:"address"`
 	City        string    `gorm:"size:80;not null" json:"city"`
 	Province    string    `gorm:"size:80;not null" json:"province"`
-	PostalCode  string    `gorm:"size:20" json:"postal_code"`
-	IsDefault   bool      `gorm:"not null;default:false" json:"is_default"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	PostalCode  string    `gorm:"size:20" json:"postalCode"`
+	IsDefault   bool      `gorm:"not null;default:false" json:"isDefault"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type Store struct {
 	ID            uint      `gorm:"primaryKey" json:"-"`
-	StoreID       string    `gorm:"uniqueIndex;size:48;not null" json:"store_id"`
-	SellerID      string    `gorm:"size:64;index;not null" json:"seller_id"`
+	StoreID       string    `gorm:"uniqueIndex;size:48;not null" json:"id"`
+	SellerID      string    `gorm:"size:64;index;not null" json:"-"`
 	Name          string    `gorm:"size:140;not null" json:"name"`
-	Slug          string    `gorm:"uniqueIndex;size:160;not null" json:"slug"`
+	Slug          string    `gorm:"uniqueIndex;size:160;not null" json:"-"`
 	Description   string    `gorm:"type:text" json:"description"`
-	City          string    `gorm:"size:80" json:"city"`
-	Province      string    `gorm:"size:80" json:"province"`
-	LogoURL       string    `gorm:"size:255" json:"logo_url"`
-	RatingAverage float64   `gorm:"not null;default:0" json:"rating_average"`
-	ReviewCount   int       `gorm:"not null;default:0" json:"review_count"`
-	Status        string    `gorm:"size:32;not null;default:ACTIVE" json:"status"`
+	City          string    `gorm:"size:80" json:"-"`
+	Province      string    `gorm:"size:80" json:"-"`
+	Location      string    `gorm:"size:120" json:"location"`
+	LogoURL       string    `gorm:"size:255" json:"logo"`
+	RatingAverage float64   `gorm:"not null;default:0" json:"rating"`
+	ReviewCount   int       `gorm:"not null;default:0" json:"-"`
+	ProductCount  int       `gorm:"not null;default:0" json:"products"`
+	Badge         string    `gorm:"size:48" json:"badge"`
+	Initials      string    `gorm:"size:8" json:"initials"`
+	Status        string    `gorm:"size:32;not null;default:ACTIVE" json:"-"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type Product struct {
-	ID          uint      `gorm:"primaryKey" json:"-"`
-	ProductID   string    `gorm:"uniqueIndex;size:32;not null" json:"product_id"`
-	SellerID    string    `gorm:"size:64;not null" json:"seller_id"`
-	StoreID     string    `gorm:"size:48;index" json:"store_id"`
-	NamaProduk  string    `gorm:"size:160;not null" json:"nama_produk"`
-	Deskripsi   string    `gorm:"type:text;not null" json:"deskripsi"`
-	Harga       int64     `gorm:"not null" json:"harga"`
-	Stok        int       `gorm:"not null" json:"stok"`
-	Kategori    string    `gorm:"size:80;not null" json:"kategori"`
-	ImageURL    string    `gorm:"size:255" json:"image_url"`
-	BeratGram   int       `gorm:"not null;default:500" json:"berat_gram"`
-	Kondisi     string    `gorm:"size:32;not null;default:Baru" json:"kondisi"`
-	Lokasi      string    `gorm:"size:120" json:"lokasi"`
-	RatingAvg   float64   `gorm:"not null;default:0" json:"rating_avg"`
-	ReviewCount int       `gorm:"not null;default:0" json:"review_count"`
-	SoldCount   int       `gorm:"not null;default:0" json:"sold_count"`
-	StatusAktif bool      `gorm:"not null;default:true" json:"status_aktif"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            uint      `gorm:"primaryKey" json:"-"`
+	ProductID     string    `gorm:"uniqueIndex;size:64;not null" json:"id"`
+	SellerID      string    `gorm:"size:64;not null" json:"-"`
+	StoreID       string    `gorm:"size:48;index" json:"-"`
+	NamaProduk    string    `gorm:"size:160;not null" json:"name"`
+	Deskripsi     string    `gorm:"type:text;not null" json:"description"`
+	Harga         int64     `gorm:"not null" json:"price"`
+	OriginalPrice int64     `gorm:"not null;default:0" json:"originalPrice"`
+	Discount      int       `gorm:"not null;default:0" json:"discount"`
+	Stok          int       `gorm:"not null" json:"stock"`
+	CategoryID    string    `gorm:"size:80;index" json:"categoryId"`
+	Kategori      string    `gorm:"size:80;not null" json:"category"`
+	ImageURL      string    `gorm:"size:255" json:"image"`
+	Variants      []string  `gorm:"serializer:json;type:text" json:"variants"`
+	Featured      bool      `gorm:"not null;default:false" json:"featured"`
+	Highlights    []string  `gorm:"serializer:json;type:text" json:"highlights"`
+	BeratGram     int       `gorm:"not null;default:500" json:"weightGram"`
+	Kondisi       string    `gorm:"size:32;not null;default:Baru" json:"condition"`
+	Lokasi        string    `gorm:"size:120" json:"location"`
+	RatingAvg     float64   `gorm:"not null;default:0" json:"rating"`
+	ReviewCount   int       `gorm:"not null;default:0" json:"reviewCount"`
+	SoldCount     int       `gorm:"not null;default:0" json:"sold"`
+	StatusAktif   bool      `gorm:"not null;default:true" json:"active"`
+	Store         Store     `gorm:"-" json:"store"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type Order struct {
@@ -116,6 +127,7 @@ type OrderItem struct {
 	NamaProduk string    `gorm:"size:160;not null" json:"nama_produk"`
 	Harga      int64     `gorm:"not null" json:"harga"`
 	Qty        int       `gorm:"not null" json:"qty"`
+	Variant    string    `gorm:"size:120" json:"variant"`
 	LineTotal  int64     `gorm:"not null" json:"line_total"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
@@ -125,6 +137,7 @@ type CartItem struct {
 	ID        uint      `gorm:"primaryKey" json:"-"`
 	UserID    string    `gorm:"size:64;uniqueIndex:idx_cart_user_product;not null" json:"user_id"`
 	ProductID string    `gorm:"size:32;uniqueIndex:idx_cart_user_product;not null" json:"product_id"`
+	Variant   string    `gorm:"size:120" json:"variant"`
 	Qty       int       `gorm:"not null" json:"qty"`
 	Selected  bool      `gorm:"not null;default:true" json:"selected"`
 	CreatedAt time.Time `json:"created_at"`

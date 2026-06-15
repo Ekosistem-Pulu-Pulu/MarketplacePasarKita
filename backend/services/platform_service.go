@@ -30,15 +30,15 @@ type UpdateProfileInput struct {
 }
 
 type AddressInput struct {
-	AddressID   string `json:"address_id"`
+	AddressID   string `json:"id"`
 	Label       string `json:"label"`
 	Recipient   string `json:"recipient"`
 	Phone       string `json:"phone"`
-	AddressLine string `json:"address_line"`
+	AddressLine string `json:"address"`
 	City        string `json:"city"`
 	Province    string `json:"province"`
-	PostalCode  string `json:"postal_code"`
-	IsDefault   bool   `json:"is_default"`
+	PostalCode  string `json:"postalCode"`
+	IsDefault   bool   `json:"isDefault"`
 }
 
 func (s *AccountService) PublicUser(userID string) (*models.User, error) {
@@ -144,8 +144,11 @@ func NewPlatformService(products *repositories.ProductRepository, orders *reposi
 }
 
 type CartView struct {
-	Item    models.CartItem `json:"item"`
-	Product models.Product  `json:"product"`
+	ProductID string         `json:"productId"`
+	Qty       int            `json:"qty"`
+	Variant   string         `json:"variant"`
+	Selected  bool           `json:"selected"`
+	Product   models.Product `json:"product"`
 }
 
 type CartSummary struct {
@@ -155,17 +158,32 @@ type CartSummary struct {
 }
 
 type CartInput struct {
-	ProductID string `json:"product_id"`
+	ProductID string `json:"productId"`
 	Qty       int    `json:"qty"`
+	Variant   string `json:"variant"`
 	Selected  *bool  `json:"selected"`
 }
 
+type ShippingChoice struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Carrier string `json:"carrier"`
+	Service string `json:"service"`
+	Eta     string `json:"eta"`
+	Price   int64  `json:"price"`
+}
+
+type PaymentChoice struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Fee  int64  `json:"fee"`
+}
+
 type CartCheckoutInput struct {
-	AddressID       string `json:"address_id"`
-	ShippingCourier string `json:"shipping_courier"`
-	ShippingService string `json:"shipping_service"`
-	VoucherCode     string `json:"voucher_code"`
-	PaymentMethod   string `json:"payment_method"`
+	AddressID   string         `json:"addressId"`
+	Shipping    ShippingChoice `json:"shipping"`
+	Payment     PaymentChoice  `json:"payment"`
+	VoucherCode string         `json:"voucherCode"`
 }
 
 type CartSyncInput struct {
@@ -173,14 +191,14 @@ type CartSyncInput struct {
 }
 
 type CheckoutEstimate struct {
-	Items          []CartView `json:"items"`
-	Subtotal       int64      `json:"subtotal"`
-	MarketplaceFee int64      `json:"marketplace_fee"`
-	GatewayFee     int64      `json:"gateway_fee"`
-	ShippingCost   int64      `json:"shipping_cost"`
-	DiscountAmount int64      `json:"discount_amount"`
-	TotalBayar     int64      `json:"total_bayar"`
-	Count          int        `json:"count"`
+	Items      []CartView     `json:"items"`
+	Subtotal   int64          `json:"subtotal"`
+	Discount   int64          `json:"discount"`
+	Shipping   ShippingChoice `json:"shipping"`
+	Payment    PaymentChoice  `json:"payment"`
+	ServiceFee int64          `json:"serviceFee"`
+	Total      int64          `json:"total"`
+	Count      int            `json:"count"`
 }
 
 type VoucherPreview struct {
@@ -203,7 +221,13 @@ func (s *PlatformService) Cart(userID string) (*CartSummary, error) {
 		if err != nil {
 			continue
 		}
-		summary.Items = append(summary.Items, CartView{Item: item, Product: *product})
+		summary.Items = append(summary.Items, CartView{
+			ProductID: item.ProductID,
+			Qty:       item.Qty,
+			Variant:   item.Variant,
+			Selected:  item.Selected,
+			Product:   *product,
+		})
 		summary.Count += item.Qty
 		if item.Selected {
 			summary.Subtotal += product.Harga * int64(item.Qty)
@@ -235,7 +259,7 @@ func (s *PlatformService) AddCart(userID string, input CartInput) (*CartSummary,
 	if currentQty+input.Qty > product.Stok {
 		return nil, fmt.Errorf("%w: stok %s tidak cukup", ErrBadRequest, product.NamaProduk)
 	}
-	if _, err := s.cart.Upsert(userID, input.ProductID, input.Qty); err != nil {
+	if _, err := s.cart.Upsert(userID, input.ProductID, input.Variant, input.Qty); err != nil {
 		return nil, err
 	}
 	return s.Cart(userID)
@@ -318,7 +342,7 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 	}
 	selected := make([]CartView, 0)
 	for _, item := range cart.Items {
-		if item.Item.Selected {
+		if item.Selected {
 			selected = append(selected, item)
 		}
 	}
@@ -340,10 +364,10 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 	subtotal := int64(0)
 	items := make([]models.OrderItem, 0, len(selected))
 	for _, view := range selected {
-		if !view.Product.StatusAktif || view.Product.Stok < view.Item.Qty {
+		if !view.Product.StatusAktif || view.Product.Stok < view.Qty {
 			return nil, fmt.Errorf("%w: stok %s tidak cukup", ErrBadRequest, view.Product.NamaProduk)
 		}
-		lineTotal := view.Product.Harga * int64(view.Item.Qty)
+		lineTotal := view.Product.Harga * int64(view.Qty)
 		subtotal += lineTotal
 		items = append(items, models.OrderItem{
 			ProductID:  view.Product.ProductID,
@@ -351,16 +375,17 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 			StoreID:    view.Product.StoreID,
 			NamaProduk: view.Product.NamaProduk,
 			Harga:      view.Product.Harga,
-			Qty:        view.Item.Qty,
+			Qty:        view.Qty,
+			Variant:    view.Variant,
 			LineTotal:  lineTotal,
 		})
 	}
 
-	shippingCourier := strings.TrimSpace(input.ShippingCourier)
+	shippingCourier := strings.TrimSpace(input.Shipping.Carrier)
 	if shippingCourier == "" {
 		shippingCourier = "JNE"
 	}
-	shippingService := strings.TrimSpace(input.ShippingService)
+	shippingService := strings.TrimSpace(input.Shipping.Service)
 	if shippingService == "" {
 		shippingService = "REG"
 	}
@@ -424,7 +449,7 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 		ShippingCost:      shippingCost,
 		VoucherCode:       strings.ToUpper(strings.TrimSpace(input.VoucherCode)),
 		DiscountAmount:    discount,
-		PaymentMethod:     strings.TrimSpace(input.PaymentMethod),
+		PaymentMethod:     strings.TrimSpace(input.Payment.ID),
 		InvoiceNumber:     "INV/" + time.Now().Format("20060102") + "/" + strings.TrimPrefix(orderID, "ORD-"),
 		IntegrationStatus: payment.Status,
 		Items:             items,
@@ -463,7 +488,7 @@ func (s *PlatformService) CalculateCheckout(userID string, input CartCheckoutInp
 	}
 	selected := make([]CartView, 0)
 	for _, item := range cart.Items {
-		if item.Item.Selected {
+		if item.Selected {
 			selected = append(selected, item)
 		}
 	}
@@ -486,18 +511,18 @@ func (s *PlatformService) CalculateCheckout(userID string, input CartCheckoutInp
 	subtotal := int64(0)
 	count := 0
 	for _, view := range selected {
-		if !view.Product.StatusAktif || view.Product.Stok < view.Item.Qty {
+		if !view.Product.StatusAktif || view.Product.Stok < view.Qty {
 			return nil, fmt.Errorf("%w: stok %s tidak cukup", ErrBadRequest, view.Product.NamaProduk)
 		}
-		subtotal += view.Product.Harga * int64(view.Item.Qty)
-		count += view.Item.Qty
+		subtotal += view.Product.Harga * int64(view.Qty)
+		count += view.Qty
 	}
 
-	shippingCourier := strings.TrimSpace(input.ShippingCourier)
+	shippingCourier := strings.TrimSpace(input.Shipping.Carrier)
 	if shippingCourier == "" {
 		shippingCourier = "JNE"
 	}
-	shippingService := strings.TrimSpace(input.ShippingService)
+	shippingService := strings.TrimSpace(input.Shipping.Service)
 	if shippingService == "" {
 		shippingService = "REG"
 	}
@@ -521,14 +546,14 @@ func (s *PlatformService) CalculateCheckout(userID string, input CartCheckoutInp
 	}
 
 	return &CheckoutEstimate{
-		Items:          selected,
-		Subtotal:       subtotal,
-		MarketplaceFee: fee,
-		GatewayFee:     gatewayFee,
-		ShippingCost:   shippingCost,
-		DiscountAmount: discount,
-		TotalBayar:     total,
-		Count:          count,
+		Items:      selected,
+		Subtotal:   subtotal,
+		Discount:   discount,
+		Shipping:   ShippingChoice{ID: shippingCourier + "-" + shippingService, Name: shippingCourier + " " + shippingService, Carrier: shippingCourier, Service: shippingService, Price: shippingCost},
+		Payment:    PaymentChoice{ID: input.Payment.ID, Name: paymentChoiceName(input.Payment.ID), Fee: gatewayFee},
+		ServiceFee: fee,
+		Total:      total,
+		Count:      count,
 	}, nil
 }
 
@@ -538,6 +563,95 @@ func (s *PlatformService) ListOrders(userID string) ([]models.Order, error) {
 
 func (s *PlatformService) ListSellerOrders(sellerID string) ([]models.Order, error) {
 	return s.orders.ListBySeller(sellerID)
+}
+
+func (s *PlatformService) ListSellerProducts(sellerID string) ([]models.Product, error) {
+	return s.products.ListBySeller(sellerID)
+}
+
+func (s *PlatformService) SaveSellerProduct(sellerID string, input ProductInput) (*models.Product, error) {
+	store, err := s.stores.FindBySellerID(sellerID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("%w: toko seller belum tersedia", ErrNotFound)
+	}
+	if err != nil {
+		return nil, err
+	}
+	input.SellerID = sellerID
+	input.StoreID = store.StoreID
+	input.Lokasi = store.Location
+	input.normalize()
+	if strings.TrimSpace(input.NamaProduk) == "" || strings.TrimSpace(input.Kategori) == "" || strings.TrimSpace(input.Deskripsi) == "" {
+		return nil, fmt.Errorf("%w: nama, kategori, dan deskripsi produk wajib diisi", ErrBadRequest)
+	}
+	if input.Harga < 1000 || input.Stok < 0 {
+		return nil, fmt.Errorf("%w: harga minimal 1000 dan stok tidak boleh negatif", ErrBadRequest)
+	}
+	product := &models.Product{ProductID: input.ProductID}
+	if product.ProductID == "" {
+		product.ProductID = newProductID()
+	}
+	product.SellerID = sellerID
+	product.StoreID = store.StoreID
+	product.NamaProduk = input.NamaProduk
+	product.Deskripsi = input.Deskripsi
+	product.Harga = input.Harga
+	product.OriginalPrice = input.OriginalPrice
+	product.Discount = input.Discount
+	product.Stok = input.Stok
+	product.CategoryID = input.CategoryID
+	product.Kategori = input.Kategori
+	product.ImageURL = input.ImageURL
+	product.Variants = input.Variants
+	product.Featured = input.Featured
+	product.Highlights = input.Highlights
+	product.BeratGram = input.BeratGram
+	if product.BeratGram <= 0 {
+		product.BeratGram = 500
+	}
+	product.Kondisi = input.Kondisi
+	if product.Kondisi == "" {
+		product.Kondisi = "Baru"
+	}
+	product.Lokasi = store.Location
+	product.StatusAktif = true
+	if err := s.products.Save(product); err != nil {
+		return nil, err
+	}
+	product.Store = *store
+	return product, nil
+}
+
+func (s *PlatformService) SellerDashboard(sellerID string) (fiberMap, error) {
+	products, err := s.products.ListBySeller(sellerID)
+	if err != nil {
+		return nil, err
+	}
+	orders, err := s.orders.ListBySeller(sellerID)
+	if err != nil {
+		return nil, err
+	}
+	store, _ := s.stores.FindBySellerID(sellerID)
+	revenue := int64(0)
+	orderViews := make([]fiberMap, 0, len(orders))
+	for _, order := range orders {
+		revenue += order.TotalBayar
+		orderViews = append(orderViews, fiberMap{
+			"id": order.OrderID, "buyer": order.UserID, "total": order.TotalBayar,
+			"status": frontendOrderStatus(order.StatusOrder), "createdAt": order.CreatedAt,
+		})
+	}
+	rating := float64(0)
+	if store != nil {
+		rating = store.RatingAverage
+	}
+	return fiberMap{
+		"stats":         fiberMap{"revenue": revenue, "orders": len(orders), "products": len(products), "rating": rating},
+		"weeklySales":   []int64{4200000, 5800000, 4600000, 7200000, 6400000, 8800000, revenue},
+		"categorySales": []int{48, 24, 18, 10},
+		"products":      products,
+		"orders":        orderViews,
+	}, nil
 }
 
 func (s *PlatformService) CancelOrder(userID, orderID, reason string) (*models.Order, error) {
@@ -636,6 +750,19 @@ func (s *PlatformService) ListStores() ([]models.Store, error) {
 	return s.stores.List()
 }
 
+func (s *PlatformService) Categories() []fiberMap {
+	return []fiberMap{
+		{"id": "elektronik", "name": "Elektronik", "icon": "smartphone", "color": "#e8f0ff", "description": "Gadget pintar untuk aktivitas harian"},
+		{"id": "fashion", "name": "Fashion", "icon": "shirt", "color": "#fff0f5", "description": "Gaya nyaman untuk setiap suasana"},
+		{"id": "makanan", "name": "Makanan", "icon": "utensils", "color": "#fff5e5", "description": "Camilan dan bahan pangan pilihan"},
+		{"id": "kesehatan", "name": "Kesehatan", "icon": "heart-pulse", "color": "#e9fbf2", "description": "Perawatan diri dan hidup sehat"},
+		{"id": "rumah-tangga", "name": "Rumah Tangga", "icon": "house", "color": "#eff8ff", "description": "Solusi praktis untuk rumah"},
+		{"id": "aksesoris", "name": "Aksesoris", "icon": "watch", "color": "#f5efff", "description": "Detail kecil penyempurna gaya"},
+		{"id": "buku", "name": "Buku", "icon": "book-open", "color": "#fff7df", "description": "Bacaan, jurnal, dan alat tulis"},
+		{"id": "olahraga", "name": "Olahraga", "icon": "dumbbell", "color": "#eafaf8", "description": "Perlengkapan untuk tetap aktif"},
+	}
+}
+
 func (s *PlatformService) GetStore(storeID string) (*models.Store, []models.Product, error) {
 	store, err := s.stores.FindByStoreID(storeID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -697,9 +824,9 @@ func (s *PlatformService) ShippingOptions(_ string, qty int) []fiberMap {
 	}
 	base := int64(9000) + weightMultiplier*1000
 	return []fiberMap{
-		{"courier": "JNE", "service": "REG", "cost": base, "estimated_days": "2-4 hari"},
-		{"courier": "JNE", "service": "YES", "cost": base + 8000, "estimated_days": "1 hari"},
-		{"courier": "SiCepat", "service": "HALU", "cost": base - 1000, "estimated_days": "2-5 hari"},
+		{"id": "JNE-REG", "name": "JNE REG", "carrier": "JNE", "service": "REG", "price": base, "eta": "2-4 hari"},
+		{"id": "JNE-YES", "name": "JNE YES", "carrier": "JNE", "service": "YES", "price": base + 8000, "eta": "1 hari"},
+		{"id": "SiCepat-HALU", "name": "SiCepat HALU", "carrier": "SiCepat", "service": "HALU", "price": base - 1000, "eta": "2-5 hari"},
 	}
 }
 
@@ -780,7 +907,7 @@ type fiberMap map[string]any
 func CalculateShippingCost(courier, service string, items []CartView) int64 {
 	totalQty := int64(0)
 	for _, item := range items {
-		totalQty += int64(item.Item.Qty)
+		totalQty += int64(item.Qty)
 	}
 	if totalQty <= 0 {
 		totalQty = 1
@@ -793,6 +920,25 @@ func CalculateShippingCost(courier, service string, items []CartView) int64 {
 		cost -= 1000
 	}
 	return cost
+}
+
+func frontendOrderStatus(status string) string {
+	switch status {
+	case models.StatusPaymentProcess, models.StatusPaid:
+		return "Pembayaran Diproses"
+	case models.StatusReadyForShipment:
+		return "Pesanan Dikemas"
+	case models.StatusShipped:
+		return "Pesanan Dikirim"
+	case models.StatusCompleted:
+		return "Pesanan Selesai"
+	case models.StatusCancelled:
+		return "Pesanan Dibatalkan"
+	case models.StatusPaymentFailed:
+		return "Pembayaran Gagal"
+	default:
+		return "Menunggu Pembayaran"
+	}
 }
 
 func newAddressID() string      { return "ADDR-" + strconv.FormatInt(time.Now().UnixNano(), 10) }

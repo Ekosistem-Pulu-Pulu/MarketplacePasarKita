@@ -1,10 +1,13 @@
 import { formatCurrency } from "../utils/formatCurrency.js";
-import { getOrder, updateOrderStatus } from "../utils/storage.js";
+import { findOrder, setOrderStatus } from "../services/orderService.js";
 import { emptyState, toast } from "../utils/ui.js";
 
-export function render({ params }) {
-  const order = getOrder(params.id);
+let activeOrder;
+
+export async function render({ params }) {
+  const order = await findOrder(params.id);
   if (!order) return `<section class="container page-space">${emptyState({ icon: "receipt-text", title: "Pesanan tidak ditemukan", message: "Nomor pesanan tidak tersedia.", action: `<a class="btn btn-primary" href="#/orders">Lihat Pesanan</a>` })}</section>`;
+  activeOrder = order;
   const paid = order.status !== "Menunggu Pembayaran";
   const isCod = order.payment.id === "cod";
   const isWallet = order.payment.id === "ewallet";
@@ -32,10 +35,13 @@ export function afterRender({ params, navigate }) {
     await navigator.clipboard?.writeText(document.querySelector("#va-number").textContent.replaceAll(" ", ""));
     toast("Nomor Virtual Account disalin.", "info");
   });
-  document.querySelector("#mark-paid")?.addEventListener("click", () => {
-    const order = getOrder(params.id);
-    updateOrderStatus(params.id, order.payment.id === "cod" ? "Pesanan Dikemas" : "Pembayaran Diproses");
-    toast(order.payment.id === "cod" ? "Pesanan dikonfirmasi dan diteruskan ke seller." : "Pembayaran diterima dan sedang diproses.");
-    navigate(`/order/${params.id}`);
+  document.querySelector("#mark-paid")?.addEventListener("click", async () => {
+    try {
+      await setOrderStatus(params.id, activeOrder.payment.id === "cod" ? "Pesanan Dikemas" : "Pembayaran Diproses");
+      toast(activeOrder.payment.id === "cod" ? "Pesanan dikonfirmasi dan diteruskan ke seller." : "Pembayaran diterima dan sedang diproses.");
+      navigate(`/order/${params.id}`);
+    } catch (error) {
+      toast(error.message, "error");
+    }
   });
 }

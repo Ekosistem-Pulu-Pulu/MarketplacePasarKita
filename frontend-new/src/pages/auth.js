@@ -13,7 +13,7 @@ export function render({ path }) {
       </article>
       <div class="auth-form-wrap">
         <form class="auth-card" id="auth-form" novalidate>
-          <span class="eyebrow">${isRegister ? "Buat akun baru" : "Masuk ke akunmu"}</span><h2>${isRegister ? "Daftar PasarKita" : "Selamat datang"}</h2><p>${isRegister ? "Isi data singkat untuk mulai berbelanja." : "Gunakan email apa saja untuk demo. Email dengan kata seller akan membuka akun seller."}</p>
+          <span class="eyebrow">${isRegister ? "Buat akun baru" : "Masuk ke akunmu"}</span><h2>${isRegister ? "Daftar PasarKita" : "Selamat datang"}</h2><p>${isRegister ? "Isi data singkat untuk mulai berbelanja." : "Masuk memakai akun backend atau gunakan tombol buyer demo di bawah."}</p>
           ${isRegister ? `<label><span>Nama lengkap</span><input name="name" autocomplete="name" required placeholder="Contoh: Raka Pratama" /><small class="form-error" data-error-for="name"></small></label>` : ""}
           <label><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="nama@email.com" /><small class="form-error" data-error-for="email"></small></label>
           <label><span>Password</span><input name="password" type="password" minlength="6" required placeholder="Minimal 6 karakter" /><small class="form-error" data-error-for="password"></small></label>
@@ -40,13 +40,21 @@ export function afterRender({ path, navigate }) {
       toast("Form belum valid. Periksa kembali data akun.", "error");
       return;
     }
-    const user = isRegister ? await registerUser(result.data) : await loginUser(result.data);
-    toast(isRegister ? `Akun ${escapeHtml(user.name)} berhasil dibuat.` : `Selamat datang kembali, ${escapeHtml(user.name)}.`);
-    navigate(consumePendingRoute());
+    try {
+      const user = isRegister ? await registerUser(result.data) : await loginUser(result.data);
+      toast(isRegister ? `Akun ${escapeHtml(user.name)} berhasil dibuat.` : `Selamat datang kembali, ${escapeHtml(user.name)}.`);
+      navigate(consumePendingRoute());
+    } catch (error) {
+      toast(error.message, "error");
+    }
   });
   document.querySelector("#demo-login")?.addEventListener("click", async () => {
-    await loginUser({ email: "buyer@pasarkita.demo", password: "demopasar" });
-    toast("Login sebagai buyer demo berhasil.");
-    navigate(consumePendingRoute());
+    try {
+      await loginUser({ email: "buyer@pasarkita.local", password: "password123" });
+      toast("Login sebagai buyer demo berhasil.");
+      navigate(consumePendingRoute());
+    } catch (error) {
+      toast(error.message, "error");
+    }
   });
 }

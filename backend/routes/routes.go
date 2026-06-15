@@ -56,8 +56,11 @@ func Register(app *fiber.App, cfg config.Config, marketplace *controllers.Market
 
 	marketplaceGroup := app.Group("/marketplace", middleware.OptionalAuth(cfg), middleware.RequestLogger(auditRepo))
 	marketplaceGroup.Get("/browse_produk", marketplace.BrowseProducts)
+	marketplaceGroup.Get("/categories", platform.Categories)
 	marketplaceGroup.Get("/products/:id", marketplace.GetProduct)
-	marketplaceGroup.Get("/seller/products", marketplace.ListSellerProducts)
+	marketplaceGroup.Get("/seller/products", platform.ListSellerProducts)
+	marketplaceGroup.Post("/seller/products", platform.SaveSellerProduct)
+	marketplaceGroup.Get("/seller/dashboard", platform.SellerDashboard)
 	marketplaceGroup.Post("/manajemen_produk", marketplace.SaveProduct)
 	marketplaceGroup.Patch("/products/:id/status", marketplace.SetProductStatus)
 	marketplaceGroup.Post("/checkout", marketplace.Checkout)

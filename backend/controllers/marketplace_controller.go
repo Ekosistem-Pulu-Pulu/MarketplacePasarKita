@@ -20,11 +20,19 @@ func NewMarketplaceController(service *services.MarketplaceService) *Marketplace
 func (c *MarketplaceController) BrowseProducts(ctx *fiber.Ctx) error {
 	page, _ := strconv.Atoi(ctx.Query("page", "1"))
 	limit, _ := strconv.Atoi(ctx.Query("limit", "10"))
+	minPrice, _ := strconv.ParseInt(ctx.Query("minPrice", "0"), 10, 64)
+	maxPrice, _ := strconv.ParseInt(ctx.Query("maxPrice", "0"), 10, 64)
+	rating, _ := strconv.ParseFloat(ctx.Query("rating", "0"), 64)
 
 	products, total, err := c.service.BrowseProducts(services.BrowseParams{
 		Keyword:  ctx.Query("keyword"),
-		Kategori: ctx.Query("kategori", ctx.Query("category")),
+		Category: ctx.Query("category", ctx.Query("kategori")),
+		Location: ctx.Query("location"),
 		Sort:     ctx.Query("sort"),
+		MinPrice: minPrice,
+		MaxPrice: maxPrice,
+		Rating:   rating,
+		Promo:    ctx.Query("promo") != "",
 		Page:     page,
 		Limit:    limit,
 	})
@@ -96,7 +104,7 @@ func (c *MarketplaceController) Checkout(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return created(ctx, order)
+	return created(ctx, c.service.PresentOrder(order))
 }
 
 func (c *MarketplaceController) IntegratePayment(ctx *fiber.Ctx) error {
@@ -109,7 +117,7 @@ func (c *MarketplaceController) IntegratePayment(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return ok(ctx, order)
+	return ok(ctx, c.service.PresentOrder(order))
 }
 
 func (c *MarketplaceController) GetOrderStatus(ctx *fiber.Ctx) error {
@@ -125,7 +133,7 @@ func (c *MarketplaceController) GetOrderStatus(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mapServiceError(err)
 	}
-	return ok(ctx, order)
+	return ok(ctx, c.service.PresentOrder(order))
 }
 
 func (c *MarketplaceController) GetMarketplaceFee(ctx *fiber.Ctx) error {

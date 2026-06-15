@@ -1,5 +1,4 @@
 import { categories, getCategoryById } from "../data/categories.js";
-import { products } from "../data/products.js";
 import { getProducts } from "../services/productService.js";
 import { ProductGrid } from "../components/ProductGrid.js";
 import { emptyState, escapeHtml } from "../utils/ui.js";
@@ -18,8 +17,8 @@ function readFilters(route) {
   };
 }
 
-function filterForm(filters) {
-  const locations = [...new Set(products.map((product) => product.store.location))].sort();
+function filterForm(filters, items) {
+  const locations = [...new Set(items.map((product) => product.store.location))].sort();
   return `
     <form class="filter-panel" id="catalog-filter">
       <div class="filter-title"><div><span data-lucide="sliders-horizontal"></span><strong>Filter Produk</strong></div><div class="filter-title-actions"><button type="button" id="reset-filter">Reset</button><button class="filter-close" type="button" id="mobile-filter-close" aria-label="Tutup filter"><span data-lucide="x"></span></button></div></div>
@@ -43,7 +42,7 @@ export async function render(route) {
     <section class="catalog-hero"><div class="container"><span class="eyebrow">Jelajahi katalog</span><h1>${title}</h1><p>Temukan produk berkualitas dari toko pilihan di seluruh Indonesia.</p></div></section>
     <section class="container catalog-layout">
       <div class="catalog-filter-backdrop" id="catalog-filter-backdrop"></div>
-      <aside class="catalog-filter-shell" id="catalog-filter-shell">${filterForm(filters)}</aside>
+      <aside class="catalog-filter-shell" id="catalog-filter-shell">${filterForm(filters, items)}</aside>
       <main class="catalog-results">
         <div class="catalog-toolbar">
           <div><strong id="result-count">${items.length} produk ditemukan</strong><span>Produk terkurasi untuk kebutuhanmu</span></div>

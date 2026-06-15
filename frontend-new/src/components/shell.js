@@ -1,10 +1,12 @@
 import { categories } from "../data/categories.js";
-import { products } from "../data/products.js";
-import { getCartCount, getUser, logout } from "../utils/storage.js";
+import { getProductSnapshot } from "../services/productService.js";
+import { getCartCountSnapshot } from "../services/cartService.js";
+import { getUser, isLoggedIn, logout } from "../utils/storage.js";
 import { escapeHtml, toast } from "../utils/ui.js";
 
 export function header() {
-  const user = getUser();
+  const user = isLoggedIn() ? getUser() : null;
+  const products = getProductSnapshot();
   const suggestions = products.slice(0, 5);
   return `
     <div class="announcement">
@@ -20,7 +22,7 @@ export function header() {
           <span>Pasar<span>Kita</span></span>
         </a>
         <div class="mobile-header-actions">
-          <a class="mobile-cart-button" href="#/cart" aria-label="Keranjang"><span data-lucide="shopping-cart"></span><b>${getCartCount()}</b></a>
+          <a class="mobile-cart-button" href="#/cart" aria-label="Keranjang"><span data-lucide="shopping-cart"></span><b>${getCartCountSnapshot()}</b></a>
           <button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-expanded="false" aria-controls="mobile-category-drawer" aria-label="Buka menu"><span data-lucide="menu"></span></button>
         </div>
         <a class="category-trigger" href="#/products"><span data-lucide="layout-grid"></span>Kategori</a>
@@ -35,7 +37,7 @@ export function header() {
         </form>
         <nav class="nav-actions">
           <a class="nav-icon" href="#/orders" aria-label="Pesanan"><span data-lucide="receipt-text"></span></a>
-          <a class="nav-icon" href="#/cart" aria-label="Keranjang"><span data-lucide="shopping-cart"></span><b id="cart-badge">${getCartCount()}</b></a>
+          <a class="nav-icon" href="#/cart" aria-label="Keranjang"><span data-lucide="shopping-cart"></span><b id="cart-badge">${getCartCountSnapshot()}</b></a>
           ${user ? `
             <button class="profile-trigger" id="profile-trigger"><span class="avatar">${escapeHtml(user.avatar)}</span><span><small>Halo,</small>${escapeHtml(user.name.split(" ")[0])}</span><span data-lucide="chevron-down"></span></button>
             <div class="profile-menu" id="profile-menu">
@@ -70,7 +72,7 @@ export function header() {
     <nav class="mobile-nav">
       <a href="#/"><span data-lucide="home"></span><small>Home</small></a>
       <a href="#/products"><span data-lucide="layout-grid"></span><small>Produk</small></a>
-      <a href="#/cart"><span data-lucide="shopping-cart"></span><small>Cart</small><b>${getCartCount()}</b></a>
+      <a href="#/cart"><span data-lucide="shopping-cart"></span><small>Cart</small><b>${getCartCountSnapshot()}</b></a>
       <a href="#/orders"><span data-lucide="receipt-text"></span><small>Pesanan</small></a>
       <a href="${user ? "#/profile" : "#/login"}"><span data-lucide="user"></span><small>Akun</small></a>
     </nav>
@@ -92,6 +94,7 @@ export function footer() {
 }
 
 export function bindShell(navigate) {
+  const products = getProductSnapshot();
   const search = document.querySelector("#global-search");
   const suggestions = document.querySelector("#search-suggestions");
   const searchInput = search?.querySelector("input");

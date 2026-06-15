@@ -47,10 +47,10 @@ func (c *AuthController) Me(ctx *fiber.Ctx) error {
 	}
 
 	return ok(ctx, fiber.Map{
-		"user_id": claims.UserID,
-		"name":    claims.Name,
-		"email":   claims.Email,
-		"role":    claims.Role,
+		"id":    claims.UserID,
+		"name":  claims.Name,
+		"email": claims.Email,
+		"role":  claims.Role,
 	})
 }
 

@@ -19,7 +19,7 @@ import (
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type DemoUser struct {
-	UserID   string `json:"user_id"`
+	UserID   string `json:"id"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Role     string `json:"role"`
@@ -33,8 +33,8 @@ type LoginInput struct {
 
 type AuthResult struct {
 	Token     string    `json:"token"`
-	TokenType string    `json:"token_type"`
-	ExpiresAt time.Time `json:"expires_at"`
+	TokenType string    `json:"tokenType"`
+	ExpiresAt time.Time `json:"expiresAt"`
 	User      DemoUser  `json:"user"`
 }
 

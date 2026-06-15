@@ -14,7 +14,7 @@ import * as loginPage from "../pages/login.js";
 import * as registerPage from "../pages/register.js";
 import * as profile from "../pages/profile.js";
 import * as sellerDashboard from "../pages/sellerDashboard.js";
-import { addToCart } from "../services/cartService.js";
+import { addToCart, getCartCountSnapshot } from "../services/cartService.js";
 import { getUser, isLoggedIn, setPendingRoute } from "./storage.js";
 import { animatePage, emptyState, skeleton, toast } from "./ui.js";
 
@@ -77,11 +77,23 @@ export async function renderRoute() {
   if (!route.page) {
     viewRoot.innerHTML = `<section class="container page-space">${emptyState({ icon: "map", title: "Halaman tidak ditemukan", message: "Alamat yang kamu buka belum tersedia.", action: `<a class="btn btn-primary" href="#/">Kembali ke Home</a>` })}</section>`;
   } else {
-    viewRoot.innerHTML = await route.page.render(route);
+    try {
+      viewRoot.innerHTML = await route.page.render(route);
+    } catch (error) {
+      if (error.status === 401) {
+        setPendingRoute(route.path);
+        toast("Sesi login berakhir. Silakan masuk kembali.", "error");
+        navigate("/login");
+        return;
+      }
+      toast(error.message || "Halaman belum dapat dimuat.", "error");
+      viewRoot.innerHTML = `<section class="container page-space">${emptyState({ icon: "wifi-off", title: "Halaman belum dapat dimuat", message: error.message || "Terjadi kendala saat mengambil data.", action: `<button class="btn btn-primary" type="button" data-retry-route>Coba Lagi</button>` })}</section>`;
+    }
   }
 
   renderIcons();
   bindNavbar(navigate);
+  viewRoot.querySelector("[data-retry-route]")?.addEventListener("click", renderRoute);
   await route.page?.afterRender?.({ ...route, route, navigate, renderRoute, refreshIcons: renderIcons, user: getUser() });
   renderIcons();
   animatePage(viewRoot);
@@ -95,8 +107,12 @@ export function initRouter(roots) {
     if (addButton) {
       event.preventDefault();
       event.stopPropagation();
-      await addToCart(addButton.dataset.addCart);
-      toast("Produk berhasil ditambahkan ke keranjang.");
+      try {
+        await addToCart(addButton.dataset.addCart);
+        toast("Produk berhasil ditambahkan ke keranjang.");
+      } catch (error) {
+        toast(error.message, "error");
+      }
       return;
     }
     const wishlistButton = event.target.closest(".wishlist-button, .wishlist-float");
@@ -110,8 +126,12 @@ export function initRouter(roots) {
   window.addEventListener("hashchange", renderRoute);
   window.addEventListener("pasarkita:state", () => {
     document.querySelectorAll("#cart-badge, .mobile-nav b").forEach((badge) => {
-      const count = JSON.parse(localStorage.getItem("pasarkita_demo_cart") || "[]").reduce((total, item) => total + item.qty, 0);
-      badge.textContent = count;
+      badge.textContent = getCartCountSnapshot();
+    });
+  });
+  window.addEventListener("pasarkita:cart-updated", () => {
+    document.querySelectorAll("#cart-badge, .mobile-nav b, .mobile-cart-button b").forEach((badge) => {
+      badge.textContent = getCartCountSnapshot();
     });
   });
   if (!location.hash) location.hash = "#/";

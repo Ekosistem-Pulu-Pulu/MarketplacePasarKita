@@ -1,6 +1,6 @@
 # PasarKita Frontend MVP
 
-Demo marketplace frontend standalone menggunakan Vite, Vanilla JavaScript, HTML, Tailwind CSS, dan localStorage. Project ini tidak terhubung ke backend.
+Frontend marketplace menggunakan Vite, Vanilla JavaScript, HTML, Tailwind CSS, dan service layer API. Produk, akun, cart user login, checkout, pembayaran, order, dan seller dashboard terhubung ke backend Go Fiber di port `3002`. Data lokal tetap tersedia sebagai fallback ketika backend tidak aktif.
 
 ## Library
 
@@ -17,7 +17,15 @@ Demo marketplace frontend standalone menggunakan Vite, Vanilla JavaScript, HTML,
 ```bash
 cd frontend-new
 npm install
+copy .env.example .env
 npm run dev
+```
+
+Jalankan backend terlebih dahulu:
+
+```bash
+cd backend
+go run .
 ```
 
 Production build:
@@ -41,4 +49,6 @@ npm run preview
 - `#/profile` profil pembeli
 - `#/seller` seller dashboard
 
-Gunakan tombol **Masuk cepat sebagai buyer demo** untuk menguji checkout. Seluruh cart, user dummy, dan order disimpan pada localStorage browser.
+Gunakan tombol **Masuk cepat sebagai buyer demo** untuk login dengan `buyer@pasarkita.local` / `password123`. Akun seller backend adalah `seller@pasarkita.local` / `password123`.
+
+`VITE_API_BASE_URL` dapat diubah pada `.env` jika backend berjalan pada host atau port lain. Guest cart tetap berada di localStorage dan disinkronkan ke backend setelah login.

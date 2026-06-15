@@ -1,10 +1,10 @@
-import { getOrders, getUser, updateUser } from "../utils/storage.js";
+import { getProfile, updateProfile } from "../services/accountService.js";
+import { listOrders } from "../services/orderService.js";
 import { formatCurrency } from "../utils/formatCurrency.js";
 import { escapeHtml, toast } from "../utils/ui.js";
 
-export function render() {
-  const user = getUser();
-  const orders = getOrders();
+export async function render() {
+  const [user, orders] = await Promise.all([getProfile(), listOrders()]);
   const spending = orders.reduce((total, order) => total + order.totals.total, 0);
   return `
     <section class="profile-hero"><div class="container"><div class="profile-avatar">${escapeHtml(user.avatar)}</div><div><span class="eyebrow light">Member PasarKita</span><h1>${escapeHtml(user.name)}</h1><p>${escapeHtml(user.email)} · Bergabung sejak Juni 2026</p></div><a class="btn btn-accent" href="#/orders">Lihat Pesanan</a></div></section>
@@ -20,11 +20,15 @@ export function render() {
 }
 
 export function afterRender({ renderRoute }) {
-  document.querySelector("#profile-form")?.addEventListener("submit", (event) => {
+  document.querySelector("#profile-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
-    updateUser({ name: values.name, phone: values.phone, avatar: values.name.slice(0, 2).toUpperCase() });
-    toast("Profil berhasil diperbarui.");
-    renderRoute();
+    try {
+      await updateProfile({ name: values.name, phone: values.phone });
+      toast("Profil berhasil diperbarui.");
+      renderRoute();
+    } catch (error) {
+      toast(error.message, "error");
+    }
   });
 }

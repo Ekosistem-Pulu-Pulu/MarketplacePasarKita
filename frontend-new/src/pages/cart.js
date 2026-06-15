@@ -1,5 +1,5 @@
 import { formatCurrency } from "../utils/formatCurrency.js";
-import { getCartItems, removeCartItem, updateCartItem } from "../utils/storage.js";
+import { listCartItems, removeFromCart, updateCart } from "../services/cartService.js";
 import { CartItem } from "../components/CartItem.js";
 import { confirmDialog, emptyState, escapeHtml, toast } from "../utils/ui.js";
 
@@ -9,8 +9,11 @@ function summary(items) {
   return { selected, subtotal, discount: subtotal >= 500000 ? 25000 : 0 };
 }
 
-export function render() {
-  const items = getCartItems();
+let activeItems = [];
+
+export async function render() {
+  const items = await listCartItems();
+  activeItems = items;
   const totals = summary(items);
   if (!items.length) return `<section class="container page-space">${emptyState({ icon: "shopping-cart", title: "Keranjangmu masih kosong", message: "Mulai jelajahi produk dan temukan barang yang kamu suka.", action: `<a class="btn btn-primary" href="#/products">Mulai Belanja</a>` })}</section>`;
 
@@ -34,19 +37,22 @@ export function render() {
 }
 
 export function afterRender({ navigate, renderRoute }) {
-  document.querySelectorAll("[data-cart-select]").forEach((input) => input.addEventListener("change", () => { updateCartItem(input.dataset.cartSelect, input.dataset.variant, { selected: input.checked }); renderRoute(); }));
-  document.querySelector("#select-all")?.addEventListener("change", (event) => { getCartItems().forEach((item) => updateCartItem(item.productId, item.variant, { selected: event.target.checked })); renderRoute(); });
-  document.querySelectorAll("[data-cart-inc]").forEach((button) => button.addEventListener("click", () => {
-    const item = getCartItems().find((entry) => entry.productId === button.dataset.cartInc && entry.variant === button.dataset.variant);
-    updateCartItem(item.productId, item.variant, { qty: Math.min(item.product.stock, item.qty + 1) }); renderRoute();
+  document.querySelectorAll("[data-cart-select]").forEach((input) => input.addEventListener("change", async () => { await updateCart(input.dataset.cartSelect, input.dataset.variant, { selected: input.checked }); renderRoute(); }));
+  document.querySelector("#select-all")?.addEventListener("change", async (event) => {
+    await Promise.all(activeItems.map((item) => updateCart(item.productId, item.variant, { selected: event.target.checked })));
+    renderRoute();
+  });
+  document.querySelectorAll("[data-cart-inc]").forEach((button) => button.addEventListener("click", async () => {
+    const item = activeItems.find((entry) => entry.productId === button.dataset.cartInc && entry.variant === button.dataset.variant);
+    await updateCart(item.productId, item.variant, { qty: Math.min(item.product.stock, item.qty + 1) }); renderRoute();
   }));
-  document.querySelectorAll("[data-cart-dec]").forEach((button) => button.addEventListener("click", () => {
-    const item = getCartItems().find((entry) => entry.productId === button.dataset.cartDec && entry.variant === button.dataset.variant);
-    updateCartItem(item.productId, item.variant, { qty: Math.max(1, item.qty - 1) }); renderRoute();
+  document.querySelectorAll("[data-cart-dec]").forEach((button) => button.addEventListener("click", async () => {
+    const item = activeItems.find((entry) => entry.productId === button.dataset.cartDec && entry.variant === button.dataset.variant);
+    await updateCart(item.productId, item.variant, { qty: Math.max(1, item.qty - 1) }); renderRoute();
   }));
   document.querySelectorAll("[data-remove-cart]").forEach((button) => button.addEventListener("click", async () => {
     if (!await confirmDialog({ title: "Hapus produk?", message: "Produk akan dihapus dari keranjang belanjamu.", confirmLabel: "Hapus Produk", danger: true })) return;
-    removeCartItem(button.dataset.removeCart, button.dataset.variant); toast("Produk dihapus dari keranjang.", "info"); renderRoute();
+    await removeFromCart(button.dataset.removeCart, button.dataset.variant); toast("Produk dihapus dari keranjang.", "info"); renderRoute();
   }));
   document.querySelector("#cart-checkout")?.addEventListener("click", () => navigate("/checkout"));
 }

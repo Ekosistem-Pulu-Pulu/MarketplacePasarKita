@@ -1,5 +1,5 @@
 import { formatCurrency } from "../utils/formatCurrency.js";
-import { getOrder, getOrders, updateOrderStatus } from "../utils/storage.js";
+import { findOrder, listOrders, setOrderStatus } from "../services/orderService.js";
 import { orderStatuses } from "../data/orders.js";
 import { OrderStepper } from "../components/OrderStepper.js";
 import { emptyState, escapeHtml, toast } from "../utils/ui.js";
@@ -10,9 +10,11 @@ function statusClass(status) {
   return "info";
 }
 
-export function render({ params }) {
+let activeOrder;
+
+export async function render({ params }) {
   if (!params.id) {
-    const orders = getOrders();
+    const orders = await listOrders();
     return `
       <section class="container page-heading"><div><span class="eyebrow">Riwayat transaksi</span><h1>Pesanan Saya</h1><p>Pantau pembayaran, pengiriman, dan pesanan yang selesai.</p></div><a class="btn btn-secondary" href="#/products">Belanja Lagi</a></section>
       <section class="container order-list-page">${orders.length ? orders.map((order) => `
@@ -24,9 +26,10 @@ export function render({ params }) {
     `;
   }
 
-  const order = getOrder(params.id);
+  const order = await findOrder(params.id);
   if (!order) return `<section class="container page-space">${emptyState({ icon: "receipt-text", title: "Pesanan tidak ditemukan", message: "Nomor pesanan tidak tersedia.", action: `<a class="btn btn-primary" href="#/orders">Lihat Pesanan</a>` })}</section>`;
-  const activeIndex = orderStatuses.indexOf(order.status);
+  activeOrder = order;
+  const activeIndex = Math.max(0, orderStatuses.indexOf(order.status));
   return `
     <section class="container page-heading"><div><span class="eyebrow">Detail pesanan</span><h1>${order.id}</h1><p>Dibuat ${new Date(order.createdAt).toLocaleString("id-ID")}</p></div><a class="btn btn-secondary" href="#/orders">Semua Pesanan</a></section>
     <section class="container order-detail-layout">
@@ -38,17 +41,17 @@ export function render({ params }) {
       </main>
       <aside class="summary-card order-side">
         <h2>Ringkasan Pesanan</h2><div><span>Metode pembayaran</span><strong>${order.payment.name}</strong></div><div><span>Pengiriman</span><strong>${order.shipping.name}</strong></div><div><span>Alamat</span><strong>${order.address?.label || "Rumah"}</strong></div><hr/><div class="summary-total"><span>Total</span><strong>${formatCurrency(order.totals.total)}</strong></div>
-        ${order.status === "Menunggu Pembayaran" ? `<a class="btn btn-primary full" href="#/payment/${order.id}">Bayar Sekarang</a>` : activeIndex < orderStatuses.length - 1 ? `<button class="btn btn-soft full" id="advance-status">Simulasikan Status Berikutnya</button>` : `<button class="btn btn-secondary full">Beri Ulasan</button>`}
+        ${order.status === "Menunggu Pembayaran" ? `<a class="btn btn-primary full" href="#/payment/${order.id}">Bayar Sekarang</a>` : activeIndex < orderStatuses.length - 1 && order.isLocal ? `<button class="btn btn-soft full" id="advance-status">Simulasikan Status Berikutnya</button>` : `<a class="btn btn-secondary full" href="#/products">Belanja Lagi</a>`}
       </aside>
     </section>
   `;
 }
 
 export function afterRender({ params, renderRoute }) {
-  document.querySelector("#advance-status")?.addEventListener("click", () => {
-    const order = getOrder(params.id);
+  document.querySelector("#advance-status")?.addEventListener("click", async () => {
+    const order = activeOrder;
     const nextStatus = orderStatuses[Math.min(orderStatuses.length - 1, orderStatuses.indexOf(order.status) + 1)];
-    updateOrderStatus(order.id, nextStatus);
+    await setOrderStatus(order.id, nextStatus);
     toast(`Status berubah menjadi ${nextStatus}.`);
     renderRoute();
   });

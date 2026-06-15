@@ -13,11 +13,24 @@ type ProductRepository struct {
 	db *gorm.DB
 }
 
+type ProductBrowseFilter struct {
+	Keyword  string
+	Category string
+	Location string
+	Sort     string
+	MinPrice int64
+	MaxPrice int64
+	Rating   float64
+	Promo    bool
+	Page     int
+	Limit    int
+}
+
 func NewProductRepository(db *gorm.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
-func (r *ProductRepository) Browse(keyword, kategori, sort string, page, limit int) ([]models.Product, int64, error) {
+func (r *ProductRepository) Browse(filter ProductBrowseFilter) ([]models.Product, int64, error) {
 	var products []models.Product
 	var total int64
 
@@ -25,33 +38,57 @@ func (r *ProductRepository) Browse(keyword, kategori, sort string, page, limit i
 		Joins("LEFT JOIN stores ON stores.store_id = products.store_id").
 		Where("products.status_aktif = ? AND products.stok > 0", true)
 
-	if keyword != "" {
-		like := "%" + strings.ToLower(keyword) + "%"
+	if filter.Keyword != "" {
+		like := "%" + strings.ToLower(filter.Keyword) + "%"
 		query = query.Where(
 			"LOWER(products.nama_produk) LIKE ? OR LOWER(products.deskripsi) LIKE ? OR LOWER(products.kategori) LIKE ? OR LOWER(stores.name) LIKE ?",
 			like, like, like, like,
 		)
 	}
-	if kategori != "" && kategori != "all" {
-		query = query.Where("products.kategori = ?", kategori)
+	if filter.Category != "" && filter.Category != "all" {
+		query = query.Where("products.category_id = ? OR products.kategori = ?", filter.Category, filter.Category)
+	}
+	if filter.Location != "" {
+		query = query.Where("products.lokasi = ? OR stores.location = ?", filter.Location, filter.Location)
+	}
+	if filter.MinPrice > 0 {
+		query = query.Where("products.harga >= ?", filter.MinPrice)
+	}
+	if filter.MaxPrice > 0 {
+		query = query.Where("products.harga <= ?", filter.MaxPrice)
+	}
+	if filter.Rating > 0 {
+		query = query.Where("products.rating_avg >= ?", filter.Rating)
+	}
+	if filter.Promo {
+		query = query.Where("products.discount > 0")
 	}
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	switch sort {
+	switch filter.Sort {
 	case "price_asc", "low":
 		query = query.Order("products.harga ASC")
 	case "price_desc", "high":
 		query = query.Order("products.harga DESC")
+	case "rating", "rating_desc":
+		query = query.Order("products.rating_avg DESC")
+	case "sold", "sold_desc", "best-selling":
+		query = query.Order("products.sold_count DESC")
 	default:
-		query = query.Order("products.created_at DESC")
+		query = query.Order("products.featured DESC, products.rating_avg DESC, products.sold_count DESC")
 	}
 
-	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Find(&products).Error
-	return products, total, err
+	offset := (filter.Page - 1) * filter.Limit
+	if err := query.Offset(offset).Limit(filter.Limit).Find(&products).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := r.hydrateStores(products); err != nil {
+		return nil, 0, err
+	}
+	return products, total, nil
 }
 
 func (r *ProductRepository) FindByProductID(productID string) (*models.Product, error) {
@@ -59,23 +96,63 @@ func (r *ProductRepository) FindByProductID(productID string) (*models.Product, 
 	if err := r.db.Where("product_id = ?", productID).First(&product).Error; err != nil {
 		return nil, err
 	}
+	var store models.Store
+	if product.StoreID != "" {
+		if err := r.db.Where("store_id = ?", product.StoreID).First(&store).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		product.Store = store
+	}
 	return &product, nil
 }
 
 func (r *ProductRepository) ListAll() ([]models.Product, error) {
 	var products []models.Product
-	err := r.db.Order("created_at DESC").Find(&products).Error
-	return products, err
+	if err := r.db.Order("created_at DESC").Find(&products).Error; err != nil {
+		return nil, err
+	}
+	return products, r.hydrateStores(products)
 }
 
 func (r *ProductRepository) ListBySeller(sellerID string) ([]models.Product, error) {
 	var products []models.Product
-	err := r.db.Where("seller_id = ?", sellerID).Order("created_at DESC").Find(&products).Error
-	return products, err
+	if err := r.db.Where("seller_id = ? AND status_aktif = ?", sellerID, true).Order("created_at DESC").Find(&products).Error; err != nil {
+		return nil, err
+	}
+	return products, r.hydrateStores(products)
 }
 
 func (r *ProductRepository) Save(product *models.Product) error {
 	return r.db.Save(product).Error
+}
+
+func (r *ProductRepository) hydrateStores(products []models.Product) error {
+	if len(products) == 0 {
+		return nil
+	}
+	storeIDs := make([]string, 0)
+	seen := map[string]bool{}
+	for _, product := range products {
+		if product.StoreID != "" && !seen[product.StoreID] {
+			storeIDs = append(storeIDs, product.StoreID)
+			seen[product.StoreID] = true
+		}
+	}
+	if len(storeIDs) == 0 {
+		return nil
+	}
+	var stores []models.Store
+	if err := r.db.Where("store_id IN ?", storeIDs).Find(&stores).Error; err != nil {
+		return err
+	}
+	byID := make(map[string]models.Store, len(stores))
+	for _, store := range stores {
+		byID[store.StoreID] = store
+	}
+	for index := range products {
+		products[index].Store = byID[products[index].StoreID]
+	}
+	return nil
 }
 
 type UserRepository struct {
@@ -159,13 +236,13 @@ func NewStoreRepository(db *gorm.DB) *StoreRepository {
 
 func (r *StoreRepository) List() ([]models.Store, error) {
 	var stores []models.Store
-	err := r.db.Order("rating_average DESC, created_at DESC").Find(&stores).Error
+	err := r.db.Where("status = ?", "ACTIVE").Order("rating_average DESC, created_at DESC").Find(&stores).Error
 	return stores, err
 }
 
 func (r *StoreRepository) FindByStoreID(storeID string) (*models.Store, error) {
 	var store models.Store
-	if err := r.db.Where("store_id = ?", storeID).First(&store).Error; err != nil {
+	if err := r.db.Where("store_id = ? AND status = ?", storeID, "ACTIVE").First(&store).Error; err != nil {
 		return nil, err
 	}
 	return &store, nil
@@ -173,7 +250,7 @@ func (r *StoreRepository) FindByStoreID(storeID string) (*models.Store, error) {
 
 func (r *StoreRepository) FindBySellerID(sellerID string) (*models.Store, error) {
 	var store models.Store
-	if err := r.db.Where("seller_id = ?", sellerID).First(&store).Error; err != nil {
+	if err := r.db.Where("seller_id = ? AND status = ?", sellerID, "ACTIVE").First(&store).Error; err != nil {
 		return nil, err
 	}
 	return &store, nil
@@ -255,11 +332,11 @@ func (r *CartRepository) FindByUserProduct(userID, productID string) (*models.Ca
 	return &item, nil
 }
 
-func (r *CartRepository) Upsert(userID, productID string, qty int) (*models.CartItem, error) {
-	item := models.CartItem{UserID: userID, ProductID: productID, Qty: qty, Selected: true}
+func (r *CartRepository) Upsert(userID, productID, variant string, qty int) (*models.CartItem, error) {
+	item := models.CartItem{UserID: userID, ProductID: productID, Variant: variant, Qty: qty, Selected: true}
 	err := r.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}, {Name: "product_id"}},
-		DoUpdates: clause.Assignments(map[string]any{"qty": gorm.Expr("qty + ?", qty), "selected": true}),
+		DoUpdates: clause.Assignments(map[string]any{"qty": gorm.Expr("qty + ?", qty), "variant": variant, "selected": true}),
 	}).Create(&item).Error
 	if err != nil {
 		return nil, err

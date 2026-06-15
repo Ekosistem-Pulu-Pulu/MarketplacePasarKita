@@ -1,6 +1,6 @@
 # Marketplace PasarKita Backend
 
-Backend Marketplace PasarKita menggunakan Go Fiber, GORM, dan MySQL. Scope backend ini mengikuti dokumentasi Marketplace: manajemen produk, browse produk, checkout, integrasi payment request ke API Gateway/SmartBank, status order, dan fee marketplace 2%.
+Backend Marketplace PasarKita menggunakan Go Fiber, GORM, dan MySQL. Kontrak API backend mengikuti kebutuhan `frontend-new`: katalog modern, filter, cart, checkout, payment, order, profil toko, dan seller dashboard.
 
 Saat aplikasi dijalankan, backend akan menjalankan auto migrate dan seeder secara otomatis. Seeder bersifat idempotent, jadi data seed tidak akan dobel saat server dijalankan berulang.
 
@@ -16,7 +16,15 @@ Saat aplikasi dijalankan, backend akan menjalankan auto migrate dan seeder secar
 
 ## Endpoint Utama
 
-- `GET /marketplace/browse_produk?keyword=&kategori=&sort=&page=&limit=`
+- `GET /marketplace/browse_produk?keyword=&category=&location=&minPrice=&maxPrice=&rating=&promo=&sort=&page=&limit=`
+- `GET /marketplace/categories`
+- `GET /marketplace/stores`
+- `GET /marketplace/products/:id`
+- `GET|POST /marketplace/cart`
+- `POST /marketplace/cart/checkout`
+- `GET /marketplace/orders`
+- `GET /marketplace/seller/dashboard`
+- `GET|POST /marketplace/seller/products`
 - `POST /marketplace/manajemen_produk`
 - `POST /marketplace/checkout`
 - `POST /marketplace/integrasi_pembayaran`
@@ -59,7 +67,8 @@ Auto migrate membuat tabel berikut:
 
 Seeder otomatis mengisi:
 
-- 8 produk UMKM demo.
+- 32 produk demo sesuai katalog `frontend-new`.
+- 8 kategori dan 8 toko demo.
 - 4 order demo dengan status `PENDING_PAYMENT`, `PAID`, `PAYMENT_FAILED`, dan `SHIPPED`.
 - Audit log awal untuk simulasi request marketplace.
 

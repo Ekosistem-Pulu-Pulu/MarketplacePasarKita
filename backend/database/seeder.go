@@ -45,8 +45,14 @@ func seedUsers(db *gorm.DB) error {
 	}
 	users := []models.User{
 		{UserID: "USR001", Name: "Raka Buyer", Email: "buyer@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleBuyer, Phone: "081200000001", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER001", Name: "Toko Sambal Roa", Email: "seller@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000002", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER002", Name: "Kopi Gayo Seller", Email: "seller2@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000003", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER001", Name: "Nusa Techspace", Email: "seller@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000002", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER002", Name: "Sora Living", Email: "sora@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000003", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER003", Name: "Rasa Nusantara", Email: "rasa@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000010", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER004", Name: "Ara Studio", Email: "ara@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000011", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER005", Name: "Sehat Selalu", Email: "sehat@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000012", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER006", Name: "Ruang Baca Co.", Email: "buku@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000013", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER007", Name: "Gerak Aktif", Email: "gerak@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000014", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER008", Name: "Masa Kini Goods", Email: "masakini@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000015", EmailVerified: true, Status: "ACTIVE"},
 		{UserID: "CAT001", Name: "Catalog Admin", Email: "catalog@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleCatalogAdmin, Phone: "081200000004", EmailVerified: true, Status: "ACTIVE"},
 		{UserID: "CS001", Name: "Customer Support", Email: "support@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleCustomerSupport, Phone: "081200000005", EmailVerified: true, Status: "ACTIVE"},
 		{UserID: "FIN001", Name: "Finance Ops", Email: "finance@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleFinanceOps, Phone: "081200000006", EmailVerified: true, Status: "ACTIVE"},
@@ -61,36 +67,97 @@ func seedUsers(db *gorm.DB) error {
 }
 
 func seedStores(db *gorm.DB) error {
+	if err := db.Model(&models.Store{}).Where("store_id LIKE ?", "STORE%").Update("status", "INACTIVE").Error; err != nil {
+		return err
+	}
 	stores := []models.Store{
-		{StoreID: "STORE001", SellerID: "SELLER001", Name: "Toko Sambal Roa", Slug: "toko-sambal-roa", Description: "UMKM makanan pedas dan camilan rumahan.", City: "Bandung", Province: "Jawa Barat", LogoURL: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=320&q=80", RatingAverage: 4.8, ReviewCount: 128, Status: "ACTIVE"},
-		{StoreID: "STORE002", SellerID: "SELLER002", Name: "Kopi Gayo Nusantara", Slug: "kopi-gayo-nusantara", Description: "Roastery kopi Arabika Gayo dan minuman lokal.", City: "Aceh Tengah", Province: "Aceh", LogoURL: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=320&q=80", RatingAverage: 4.7, ReviewCount: 94, Status: "ACTIVE"},
-		{StoreID: "STORE003", SellerID: "SELLER003", Name: "Anyaman Bambu Lestari", Slug: "anyaman-bambu-lestari", Description: "Kerajinan anyaman bambu handmade.", City: "Yogyakarta", Province: "DI Yogyakarta", LogoURL: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=320&q=80", RatingAverage: 4.6, ReviewCount: 51, Status: "ACTIVE"},
-		{StoreID: "STORE004", SellerID: "SELLER004", Name: "Batik Modern Solo", Slug: "batik-modern-solo", Description: "Batik tulis dan fashion lokal.", City: "Solo", Province: "Jawa Tengah", RatingAverage: 4.5, ReviewCount: 44, Status: "ACTIVE"},
-		{StoreID: "STORE005", SellerID: "SELLER005", Name: "Madu Hutan Bogor", Slug: "madu-hutan-bogor", Description: "Produk madu dan herbal.", City: "Bogor", Province: "Jawa Barat", RatingAverage: 4.4, ReviewCount: 37, Status: "ACTIVE"},
-		{StoreID: "STORE006", SellerID: "SELLER006", Name: "Herbal Sereh Surabaya", Slug: "herbal-sereh-surabaya", Description: "Sabun dan perawatan herbal.", City: "Surabaya", Province: "Jawa Timur", RatingAverage: 4.3, ReviewCount: 22, Status: "ACTIVE"},
-		{StoreID: "STORE007", SellerID: "SELLER007", Name: "Aksesoris Jakarta", Slug: "aksesoris-jakarta", Description: "Dompet dan aksesori harian.", City: "Jakarta", Province: "DKI Jakarta", RatingAverage: 4.2, ReviewCount: 31, Status: "ACTIVE"},
+		{StoreID: "nusa-tech", SellerID: "SELLER001", Name: "Nusa Techspace", Slug: "nusa-techspace", Description: "Elektronik dan gadget pilihan.", City: "Bandung", Province: "Jawa Barat", Location: "Bandung", RatingAverage: 4.9, ProductCount: 126, Badge: "Official Store", Initials: "NT", Status: "ACTIVE"},
+		{StoreID: "sora-living", SellerID: "SELLER002", Name: "Sora Living", Slug: "sora-living", Description: "Solusi modern untuk rumah.", City: "Jakarta Selatan", Province: "DKI Jakarta", Location: "Jakarta Selatan", RatingAverage: 4.8, ProductCount: 84, Badge: "Star Seller", Initials: "SL", Status: "ACTIVE"},
+		{StoreID: "rasa-nusantara", SellerID: "SELLER003", Name: "Rasa Nusantara", Slug: "rasa-nusantara", Description: "Makanan pilihan dari berbagai daerah.", City: "Yogyakarta", Province: "DI Yogyakarta", Location: "Yogyakarta", RatingAverage: 4.9, ProductCount: 58, Badge: "Toko Terpercaya", Initials: "RN", Status: "ACTIVE"},
+		{StoreID: "ara-studio", SellerID: "SELLER004", Name: "Ara Studio", Slug: "ara-studio", Description: "Fashion nyaman untuk keseharian.", City: "Surabaya", Province: "Jawa Timur", Location: "Surabaya", RatingAverage: 4.8, ProductCount: 93, Badge: "Star Seller", Initials: "AS", Status: "ACTIVE"},
+		{StoreID: "sehat-selalu", SellerID: "SELLER005", Name: "Sehat Selalu", Slug: "sehat-selalu", Description: "Perawatan diri dan hidup sehat.", City: "Malang", Province: "Jawa Timur", Location: "Malang", RatingAverage: 4.9, ProductCount: 77, Badge: "Official Store", Initials: "SS", Status: "ACTIVE"},
+		{StoreID: "ruang-baca", SellerID: "SELLER006", Name: "Ruang Baca Co.", Slug: "ruang-baca", Description: "Buku dan alat tulis pilihan.", City: "Depok", Province: "Jawa Barat", Location: "Depok", RatingAverage: 4.7, ProductCount: 112, Badge: "Toko Terpercaya", Initials: "RB", Status: "ACTIVE"},
+		{StoreID: "gerak-aktif", SellerID: "SELLER007", Name: "Gerak Aktif", Slug: "gerak-aktif", Description: "Perlengkapan olahraga dan aktivitas.", City: "Tangerang", Province: "Banten", Location: "Tangerang", RatingAverage: 4.8, ProductCount: 69, Badge: "Star Seller", Initials: "GA", Status: "ACTIVE"},
+		{StoreID: "masa-kini", SellerID: "SELLER008", Name: "Masa Kini Goods", Slug: "masa-kini-goods", Description: "Aksesoris modern dan fungsional.", City: "Semarang", Province: "Jawa Tengah", Location: "Semarang", RatingAverage: 4.7, ProductCount: 101, Badge: "Toko Terpercaya", Initials: "MK", Status: "ACTIVE"},
 	}
 	return db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "store_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"seller_id", "name", "slug", "description", "city", "province", "logo_url", "rating_average", "review_count", "status"}),
+		DoUpdates: clause.AssignmentColumns([]string{"seller_id", "name", "slug", "description", "city", "province", "location", "logo_url", "rating_average", "review_count", "product_count", "badge", "initials", "status"}),
 	}).Create(&stores).Error
 }
 
 func seedProducts(db *gorm.DB) error {
-	products := []models.Product{
-		{ProductID: "PRD001", SellerID: "SELLER001", StoreID: "STORE001", NamaProduk: "Keripik Tempe Renyah", Deskripsi: "Keripik tempe gurih dari UMKM lokal dengan kemasan siap kirim.", Harga: 15000, Stok: 45, Kategori: "Makanan", ImageURL: "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&w=900&q=80", BeratGram: 350, Kondisi: "Baru", Lokasi: "Bandung", RatingAvg: 4.8, ReviewCount: 41, SoldCount: 320, StatusAktif: true},
-		{ProductID: "PRD002", SellerID: "SELLER002", StoreID: "STORE002", NamaProduk: "Kopi Arabika Gayo", Deskripsi: "Kopi arabika Gayo 200 gram dengan aroma kuat dan rasa seimbang.", Harga: 35000, Stok: 30, Kategori: "Minuman", ImageURL: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=900&q=80", BeratGram: 250, Kondisi: "Baru", Lokasi: "Aceh Tengah", RatingAvg: 4.7, ReviewCount: 28, SoldCount: 210, StatusAktif: true},
-		{ProductID: "PRD003", SellerID: "SELLER003", StoreID: "STORE003", NamaProduk: "Tas Anyaman Bambu", Deskripsi: "Tas anyaman bambu handmade untuk belanja dan aktivitas harian.", Harga: 85000, Stok: 12, Kategori: "Kerajinan", ImageURL: "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=900&q=80", BeratGram: 700, Kondisi: "Baru", Lokasi: "Yogyakarta", RatingAvg: 4.6, ReviewCount: 17, SoldCount: 92, StatusAktif: true},
-		{ProductID: "PRD004", SellerID: "SELLER001", StoreID: "STORE001", NamaProduk: "Sambal Roa Pedas", Deskripsi: "Sambal roa khas Manado dengan level pedas sedang.", Harga: 32000, Stok: 24, Kategori: "Makanan", ImageURL: "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=900&q=80", BeratGram: 300, Kondisi: "Baru", Lokasi: "Bandung", RatingAvg: 4.9, ReviewCount: 54, SoldCount: 480, StatusAktif: true},
-		{ProductID: "PRD005", SellerID: "SELLER004", StoreID: "STORE004", NamaProduk: "Batik Tulis Modern", Deskripsi: "Kemeja batik tulis motif modern untuk acara formal.", Harga: 250000, Stok: 8, Kategori: "Fashion", ImageURL: "https://images.unsplash.com/photo-1590736969955-71cc94901144?auto=format&fit=crop&w=900&q=80", BeratGram: 450, Kondisi: "Baru", Lokasi: "Solo", RatingAvg: 4.5, ReviewCount: 12, SoldCount: 39, StatusAktif: true},
-		{ProductID: "PRD006", SellerID: "SELLER005", StoreID: "STORE005", NamaProduk: "Madu Hutan Murni", Deskripsi: "Madu hutan murni ukuran 250 ml tanpa campuran gula.", Harga: 70000, Stok: 0, Kategori: "Kesehatan", ImageURL: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=900&q=80", BeratGram: 400, Kondisi: "Baru", Lokasi: "Bogor", RatingAvg: 4.4, ReviewCount: 9, SoldCount: 74, StatusAktif: true},
-		{ProductID: "PRD007", SellerID: "SELLER006", StoreID: "STORE006", NamaProduk: "Sabun Herbal Sereh", Deskripsi: "Sabun herbal handmade berbahan sereh dan minyak kelapa.", Harga: 22000, Stok: 18, Kategori: "Kesehatan", ImageURL: "https://images.unsplash.com/photo-1607006483224-7942c595e5f1?auto=format&fit=crop&w=900&q=80", BeratGram: 180, Kondisi: "Baru", Lokasi: "Surabaya", RatingAvg: 4.3, ReviewCount: 8, SoldCount: 58, StatusAktif: true},
-		{ProductID: "PRD008", SellerID: "SELLER007", StoreID: "STORE007", NamaProduk: "Dompet Kulit Sintetis", Deskripsi: "Dompet kulit sintetis lokal dengan banyak slot kartu.", Harga: 65000, Stok: 15, Kategori: "Fashion", ImageURL: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=900&q=80", BeratGram: 220, Kondisi: "Baru", Lokasi: "Jakarta", RatingAvg: 4.2, ReviewCount: 11, SoldCount: 67, StatusAktif: true},
+	if err := db.Model(&models.Product{}).Where("product_id LIKE ?", "PRD%").Update("status_aktif", false).Error; err != nil {
+		return err
+	}
+
+	type catalogSeed struct {
+		id, name, categoryID, storeID, image string
+		price                                int64
+		discount                             int
+		rating                               float64
+		sold, stock                          int
+		variants                             []string
+	}
+	seeds := []catalogSeed{
+		{"earbuds-tws-aero", "Earbuds TWS AeroBeat ANC", "elektronik", "nusa-tech", "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=800&q=80", 329000, 18, 4.9, 2840, 48, []string{"Hitam", "Putih", "Navy"}},
+		{"keyboard-mecha-mini", "Mechanical Keyboard Mini 68 Keys", "elektronik", "nusa-tech", "https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=800&q=80", 419000, 12, 4.8, 1670, 26, []string{"Brown Switch", "Red Switch"}},
+		{"powerbank-volt", "Powerbank VoltGo 20.000mAh 22.5W", "elektronik", "nusa-tech", "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=800&q=80", 279000, 15, 4.8, 3210, 62, []string{"Graphite", "Silver"}},
+		{"smartwatch-loop", "Smartwatch Loop Fit AMOLED", "elektronik", "nusa-tech", "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80", 589000, 20, 4.7, 920, 34, []string{"Black", "Rose Gold"}},
+		{"linen-shirt", "Kemeja Linen Relaxed Fit Premium", "fashion", "ara-studio", "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80", 189000, 10, 4.8, 1280, 39, []string{"S", "M", "L", "XL"}},
+		{"everyday-sneakers", "Everyday Sneakers Cloud Sole", "fashion", "ara-studio", "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80", 349000, 16, 4.7, 2260, 31, []string{"39", "40", "41", "42", "43"}},
+		{"canvas-totebag", "Totebag Canvas Daily Carry", "fashion", "ara-studio", "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=800&q=80", 89000, 0, 4.6, 760, 71, []string{"Natural", "Olive", "Black"}},
+		{"overshirt-utility", "Utility Overshirt Urban Series", "fashion", "ara-studio", "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=80", 249000, 14, 4.8, 640, 28, []string{"M", "L", "XL"}},
+		{"granola-almond", "Granola Madu Almond Panggang 500g", "makanan", "rasa-nusantara", "https://images.unsplash.com/photo-1517093157656-b9eccef91cb1?auto=format&fit=crop&w=800&q=80", 72000, 13, 4.9, 4890, 94, []string{"Original", "Dark Choco"}},
+		{"kopi-gayo", "Kopi Arabika Gayo Medium Roast 250g", "makanan", "rasa-nusantara", "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80", 88000, 9, 4.9, 3640, 82, []string{"Biji", "Bubuk Halus", "Bubuk Kasar"}},
+		{"sambal-roa", "Sambal Roa Asap Khas Manado 200g", "makanan", "rasa-nusantara", "https://images.unsplash.com/photo-1563599175592-c58dc214deff?auto=format&fit=crop&w=800&q=80", 49000, 7, 4.8, 5720, 120, []string{"Original", "Extra Pedas"}},
+		{"cookies-sea-salt", "Cookies Dark Choco Sea Salt 12pcs", "makanan", "rasa-nusantara", "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80", 65000, 10, 4.9, 2180, 68, []string{"Box 12", "Box 24"}},
+		{"gentle-skincare", "Paket Skincare Gentle Daily Set", "kesehatan", "sehat-selalu", "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80", 259000, 15, 4.8, 1840, 29, []string{"Normal Skin", "Dry Skin"}},
+		{"diffuser-calm", "Essential Oil Diffuser Calm Mist", "kesehatan", "sehat-selalu", "https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&w=800&q=80", 199000, 12, 4.7, 980, 37, []string{"White", "Wood"}},
+		{"yoga-mat", "Yoga Mat EcoGrip 6mm", "kesehatan", "sehat-selalu", "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&w=800&q=80", 179000, 11, 4.8, 1420, 54, []string{"Sage", "Lilac", "Midnight"}},
+		{"vitamin-organizer", "Weekly Vitamin Organizer Travel", "kesehatan", "sehat-selalu", "https://images.unsplash.com/photo-1550572017-edd951aa8f72?auto=format&fit=crop&w=800&q=80", 39000, 0, 4.6, 670, 86, []string{"Pastel", "Mono"}},
+		{"container-set", "Set Wadah Kedap Udara 8 Pcs", "rumah-tangga", "sora-living", "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=800&q=80", 139000, 20, 4.8, 2390, 61, []string{"Clear", "Smoke"}},
+		{"lampu-meja", "Lampu Meja LED Focus Adjustable", "rumah-tangga", "sora-living", "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=800&q=80", 149000, 17, 4.7, 1140, 45, []string{"White", "Black"}},
+		{"linen-bedding", "Linen Bedding Set Queen Size", "rumah-tangga", "sora-living", "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=800&q=80", 489000, 14, 4.9, 740, 22, []string{"Sand", "Sage", "Cloud"}},
+		{"rak-serbaguna", "Rak Modular Serbaguna 4 Susun", "rumah-tangga", "sora-living", "https://images.unsplash.com/photo-1532372320572-cda25653a26d?auto=format&fit=crop&w=800&q=80", 219000, 12, 4.7, 860, 41, []string{"Natural", "White"}},
+		{"watch-mesh", "Jam Tangan Minimal Steel Mesh", "aksesoris", "masa-kini", "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=800&q=80", 229000, 10, 4.8, 1580, 47, []string{"Silver", "Black", "Rose Gold"}},
+		{"slingbag-city", "City Sling Bag Water Repellent", "aksesoris", "masa-kini", "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80", 169000, 8, 4.7, 1280, 53, []string{"Black", "Khaki"}},
+		{"sunglasses-polarized", "Kacamata Polarized Metro Classic", "aksesoris", "masa-kini", "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=800&q=80", 139000, 18, 4.6, 890, 64, []string{"Black", "Tortoise"}},
+		{"card-holder", "Leather Card Holder Slimline", "aksesoris", "masa-kini", "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80", 99000, 0, 4.7, 620, 76, []string{"Tan", "Black", "Forest"}},
+		{"journal-dotted", "Dotted Journal Hardcover A5", "buku", "ruang-baca", "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80", 59000, 0, 4.8, 1470, 89, []string{"Midnight", "Terracotta", "Sage"}},
+		{"book-atomic-habits", "Buku Atomic Habits Edisi Indonesia", "buku", "ruang-baca", "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80", 108000, 8, 4.9, 4520, 55, []string{}},
+		{"reading-lamp", "Lampu Baca Portable Rechargeable", "buku", "ruang-baca", "https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=800&q=80", 69000, 13, 4.7, 830, 46, []string{"Warm White", "Cool White"}},
+		{"pen-set", "Premium Gel Pen Set 6 Warna", "buku", "ruang-baca", "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=800&q=80", 45000, 0, 4.6, 960, 110, []string{"Earth Tone", "Classic"}},
+		{"dumbbell-adjustable", "Adjustable Dumbbell Set 20kg", "olahraga", "gerak-aktif", "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80", 719000, 12, 4.8, 860, 18, []string{"10kg", "20kg"}},
+		{"running-belt", "Running Belt Flex Pocket", "olahraga", "gerak-aktif", "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=800&q=80", 79000, 9, 4.7, 1320, 73, []string{"Black", "Neon Lime"}},
+		{"resistance-band", "Resistance Band Pro Set 5 Level", "olahraga", "gerak-aktif", "https://images.unsplash.com/photo-1598289431512-b97b0917affc?auto=format&fit=crop&w=800&q=80", 119000, 15, 4.8, 2760, 84, []string{"Set 5 Level"}},
+		{"sports-bottle", "Botol Olahraga Thermo 1 Liter", "olahraga", "gerak-aktif", "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80", 129000, 10, 4.7, 1190, 66, []string{"Black", "Ocean", "Coral"}},
+	}
+
+	categoryNames := map[string]string{"elektronik": "Elektronik", "fashion": "Fashion", "makanan": "Makanan", "kesehatan": "Kesehatan", "rumah-tangga": "Rumah Tangga", "aksesoris": "Aksesoris", "buku": "Buku", "olahraga": "Olahraga"}
+	storeOwners := map[string]string{"nusa-tech": "SELLER001", "sora-living": "SELLER002", "rasa-nusantara": "SELLER003", "ara-studio": "SELLER004", "sehat-selalu": "SELLER005", "ruang-baca": "SELLER006", "gerak-aktif": "SELLER007", "masa-kini": "SELLER008"}
+	storeLocations := map[string]string{"nusa-tech": "Bandung", "sora-living": "Jakarta Selatan", "rasa-nusantara": "Yogyakarta", "ara-studio": "Surabaya", "sehat-selalu": "Malang", "ruang-baca": "Depok", "gerak-aktif": "Tangerang", "masa-kini": "Semarang"}
+	highlights := []string{"Kualitas terkurasi", "Dikirim maksimal 24 jam", "Garansi retur 7 hari", "Kemasan aman"}
+	products := make([]models.Product, 0, len(seeds))
+	for index, seed := range seeds {
+		originalPrice := seed.price
+		if seed.discount > 0 {
+			originalPrice = ((seed.price * 100 / int64(100-seed.discount)) + 500) / 1000 * 1000
+		}
+		products = append(products, models.Product{
+			ProductID: seed.id, SellerID: storeOwners[seed.storeID], StoreID: seed.storeID,
+			NamaProduk: seed.name, Deskripsi: seed.name + " dipilih dari material berkualitas dan dikurasi untuk kebutuhan sehari-hari. Produk dikemas aman dan didukung layanan retur 7 hari PasarKita.",
+			Harga: seed.price, OriginalPrice: originalPrice, Discount: seed.discount, Stok: seed.stock,
+			CategoryID: seed.categoryID, Kategori: categoryNames[seed.categoryID], ImageURL: seed.image,
+			Variants: seed.variants, Featured: index%3 == 0, Highlights: highlights,
+			BeratGram: 500, Kondisi: "Baru", Lokasi: storeLocations[seed.storeID],
+			RatingAvg: seed.rating, ReviewCount: seed.sold / 8, SoldCount: seed.sold, StatusAktif: true,
+		})
 	}
 
 	return db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "product_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"seller_id", "store_id", "nama_produk", "deskripsi", "harga", "stok", "kategori", "image_url", "berat_gram", "kondisi", "lokasi", "rating_avg", "review_count", "sold_count", "status_aktif"}),
+		DoUpdates: clause.AssignmentColumns([]string{"seller_id", "store_id", "nama_produk", "deskripsi", "harga", "original_price", "discount", "stok", "category_id", "kategori", "image_url", "variants", "featured", "highlights", "berat_gram", "kondisi", "lokasi", "rating_avg", "review_count", "sold_count", "status_aktif"}),
 	}).Create(&products).Error
 }
 
