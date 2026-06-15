@@ -1,31 +1,36 @@
-import { bindShell, footer, header } from "./components/shell.js";
-import { renderIcons } from "./icons.js";
-import * as home from "./pages/home.js";
-import * as productList from "./pages/productList.js";
-import * as productDetail from "./pages/productDetail.js";
-import * as cart from "./pages/cart.js";
-import * as checkout from "./pages/checkout.js";
-import * as payment from "./pages/payment.js";
-import * as orderStatus from "./pages/orderStatus.js";
-import * as auth from "./pages/auth.js";
-import * as profile from "./pages/profile.js";
-import * as sellerDashboard from "./pages/sellerDashboard.js";
-import { addCartItem, getUser, isLoggedIn, setPendingRoute } from "./utils/storage.js";
-import { emptyState, skeleton, toast } from "./utils/ui.js";
+import { Navbar, bindNavbar } from "../components/Navbar.js";
+import { Footer } from "../components/Footer.js";
+import { renderIcons } from "../icons.js";
+import * as home from "../pages/home.js";
+import * as products from "../pages/products.js";
+import * as category from "../pages/category.js";
+import * as searchResults from "../pages/searchResults.js";
+import * as productDetail from "../pages/productDetail.js";
+import * as cart from "../pages/cart.js";
+import * as checkout from "../pages/checkout.js";
+import * as payment from "../pages/payment.js";
+import * as orderStatus from "../pages/orderStatus.js";
+import * as loginPage from "../pages/login.js";
+import * as registerPage from "../pages/register.js";
+import * as profile from "../pages/profile.js";
+import * as sellerDashboard from "../pages/sellerDashboard.js";
+import { addToCart } from "../services/cartService.js";
+import { getUser, isLoggedIn, setPendingRoute } from "./storage.js";
+import { animatePage, emptyState, skeleton, toast } from "./ui.js";
 
 const routes = [
   { pattern: /^\/$/, page: home },
-  { pattern: /^\/products$/, page: productList },
-  { pattern: /^\/search$/, page: productList },
-  { pattern: /^\/category\/([^/]+)$/, page: productList, keys: ["category"] },
+  { pattern: /^\/products$/, page: products },
+  { pattern: /^\/search$/, page: searchResults },
+  { pattern: /^\/category\/([^/]+)$/, page: category, keys: ["category"] },
   { pattern: /^\/product\/([^/]+)$/, page: productDetail, keys: ["id"] },
   { pattern: /^\/cart$/, page: cart },
   { pattern: /^\/checkout$/, page: checkout, auth: true },
   { pattern: /^\/payment\/([^/]+)$/, page: payment, keys: ["id"], auth: true },
   { pattern: /^\/orders$/, page: orderStatus, auth: true },
   { pattern: /^\/order\/([^/]+)$/, page: orderStatus, keys: ["id"], auth: true },
-  { pattern: /^\/login$/, page: auth },
-  { pattern: /^\/register$/, page: auth },
+  { pattern: /^\/login$/, page: loginPage },
+  { pattern: /^\/register$/, page: registerPage },
   { pattern: /^\/profile$/, page: profile, auth: true },
   { pattern: /^\/seller$/, page: sellerDashboard },
 ];
@@ -55,6 +60,7 @@ export function navigate(path) {
 
 export async function renderRoute() {
   const route = parseRoute();
+  document.body.dataset.route = route.path.split("/")[1] || "home";
   if (route.auth && !isLoggedIn()) {
     setPendingRoute(`${route.path}${route.query.toString() ? `?${route.query}` : ""}`);
     navigate("/login");
@@ -62,8 +68,8 @@ export async function renderRoute() {
   }
 
   const isImmersive = ["/login", "/register", "/seller"].includes(route.path);
-  headerRoot.innerHTML = isImmersive ? "" : header();
-  footerRoot.innerHTML = isImmersive ? "" : footer();
+  headerRoot.innerHTML = isImmersive ? "" : Navbar();
+  footerRoot.innerHTML = isImmersive ? "" : Footer();
   viewRoot.innerHTML = `<section class="container route-loading"><span class="spinner"></span><p>Menyiapkan pengalaman belanjamu...</p>${skeleton(4)}</section>`;
   renderIcons();
 
@@ -71,32 +77,26 @@ export async function renderRoute() {
   if (!route.page) {
     viewRoot.innerHTML = `<section class="container page-space">${emptyState({ icon: "map", title: "Halaman tidak ditemukan", message: "Alamat yang kamu buka belum tersedia.", action: `<a class="btn btn-primary" href="#/">Kembali ke Home</a>` })}</section>`;
   } else {
-    viewRoot.innerHTML = route.page.render(route);
+    viewRoot.innerHTML = await route.page.render(route);
   }
 
   renderIcons();
-  bindShell(navigate);
-  route.page?.afterRender?.({
-    ...route,
-    route,
-    navigate,
-    renderRoute,
-    refreshIcons: renderIcons,
-    user: getUser(),
-  });
+  bindNavbar(navigate);
+  await route.page?.afterRender?.({ ...route, route, navigate, renderRoute, refreshIcons: renderIcons, user: getUser() });
   renderIcons();
+  animatePage(viewRoot);
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 export function initRouter(roots) {
   ({ viewRoot, headerRoot, footerRoot } = roots);
-  viewRoot.addEventListener("click", (event) => {
+  viewRoot.addEventListener("click", async (event) => {
     const addButton = event.target.closest("[data-add-cart]");
     if (addButton) {
       event.preventDefault();
       event.stopPropagation();
-      addCartItem(addButton.dataset.addCart);
-      toast("Produk ditambahkan ke keranjang.");
+      await addToCart(addButton.dataset.addCart);
+      toast("Produk berhasil ditambahkan ke keranjang.");
       return;
     }
     const wishlistButton = event.target.closest(".wishlist-button, .wishlist-float");
@@ -109,12 +109,10 @@ export function initRouter(roots) {
   });
   window.addEventListener("hashchange", renderRoute);
   window.addEventListener("pasarkita:state", () => {
-    if (!["/checkout", "/profile"].includes(parseRoute().path)) {
-      document.querySelectorAll("#cart-badge, .mobile-nav b").forEach((badge) => {
-        const count = JSON.parse(localStorage.getItem("pasarkita_demo_cart") || "[]").reduce((total, item) => total + item.qty, 0);
-        badge.textContent = count;
-      });
-    }
+    document.querySelectorAll("#cart-badge, .mobile-nav b").forEach((badge) => {
+      const count = JSON.parse(localStorage.getItem("pasarkita_demo_cart") || "[]").reduce((total, item) => total + item.qty, 0);
+      badge.textContent = count;
+    });
   });
   if (!location.hash) location.hash = "#/";
   else renderRoute();

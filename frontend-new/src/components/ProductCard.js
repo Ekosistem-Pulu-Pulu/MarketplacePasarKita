@@ -1,7 +1,7 @@
 import { formatCurrency, formatNumber } from "../utils/formatCurrency.js";
 import { escapeHtml } from "../utils/ui.js";
 
-export function productCard(product, compact = false) {
+export function ProductCard(product, compact = false) {
   return `
     <article class="product-card ${compact ? "compact" : ""}">
       <a class="product-card-media" href="#/product/${product.id}" aria-label="${escapeHtml(product.name)}">
@@ -13,14 +13,17 @@ export function productCard(product, compact = false) {
         <a class="product-card-title" href="#/product/${product.id}">${escapeHtml(product.name)}</a>
         <div class="product-price">${formatCurrency(product.price)}</div>
         ${product.discount ? `<div class="product-old-price">${formatCurrency(product.originalPrice)}</div>` : `<div class="product-old-price placeholder">&nbsp;</div>`}
-        <div class="store-line"><span data-lucide="map-pin"></span>${escapeHtml(product.store.location)} · ${escapeHtml(product.store.name)}</div>
-        <div class="rating-line"><span data-lucide="star"></span><strong>${product.rating}</strong><span>· ${formatNumber(product.sold)} terjual</span></div>
+        <div class="store-line"><span data-lucide="map-pin"></span>${escapeHtml(product.store.location)} &middot; ${escapeHtml(product.store.name)}</div>
+        <div class="rating-line"><span data-lucide="star"></span><strong>${product.rating}</strong><span>&middot; ${formatNumber(product.sold)} terjual</span></div>
         <button class="btn btn-soft add-cart-card" type="button" data-add-cart="${product.id}"><span data-lucide="shopping-cart"></span> Tambah</button>
       </div>
     </article>
   `;
 }
 
-export function productGrid(items, compact = false) {
-  return `<div class="product-grid">${items.map((product) => productCard(product, compact)).join("")}</div>`;
+export function ProductGrid(items, compact = false) {
+  return `<div class="product-grid">${items.map((product) => ProductCard(product, compact)).join("")}</div>`;
 }
+
+export const productCard = ProductCard;
+export const productGrid = ProductGrid;

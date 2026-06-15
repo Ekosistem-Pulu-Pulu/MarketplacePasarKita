@@ -69,7 +69,7 @@ export function getProductById(id) {
   return products.find((product) => product.id === id);
 }
 
-export function filterProducts({ query = "", category = "", location = "", minPrice = 0, maxPrice = Infinity, rating = 0, sort = "recommended" } = {}) {
+export function filterProducts({ query = "", category = "", location = "", minPrice = 0, maxPrice = Infinity, rating = 0, promo = "", sort = "recommended" } = {}) {
   const keyword = query.trim().toLowerCase();
   const result = products.filter((product) => {
     const searchable = `${product.name} ${product.category} ${product.store.name} ${product.store.location}`.toLowerCase();
@@ -78,7 +78,8 @@ export function filterProducts({ query = "", category = "", location = "", minPr
       && (!location || product.store.location === location)
       && product.price >= Number(minPrice || 0)
       && product.price <= Number(maxPrice || Infinity)
-      && product.rating >= Number(rating || 0);
+      && product.rating >= Number(rating || 0)
+      && (!promo || product.discount > 0);
   });
 
   return [...result].sort((a, b) => {
