@@ -1,6 +1,9 @@
 package routes
 
 import (
+	"os"
+
+	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 
 	"pasarkita-marketplace-backend/config"
@@ -10,6 +13,21 @@ import (
 )
 
 func Register(app *fiber.App, cfg config.Config, marketplace *controllers.MarketplaceController, auth *controllers.AuthController, account *controllers.AccountController, platform *controllers.PlatformController, auditRepo *repositories.AuditLogRepository) {
+	// Setup Swagger UI middleware
+	swaggerPath := "./docs/openapi.yaml"
+	if _, err := os.Stat(swaggerPath); os.IsNotExist(err) {
+		if _, err2 := os.Stat("./backend/docs/openapi.yaml"); err2 == nil {
+			swaggerPath = "./backend/docs/openapi.yaml"
+		}
+	}
+
+	app.Use(swagger.New(swagger.Config{
+		BasePath: "/",
+		FilePath: swaggerPath,
+		Path:     "docs",
+		Title:    "PasarKita Marketplace API Docs",
+	}))
+
 	app.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.JSON(fiber.Map{
 			"service": "Marketplace PasarKita",
