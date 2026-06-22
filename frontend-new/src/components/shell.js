@@ -6,13 +6,15 @@ import { escapeHtml, toast } from "../utils/ui.js";
 
 export function header() {
   const user = isLoggedIn() ? getUser() : null;
+  const sellerHref = "#/seller";
+  const sellerLabel = user?.role === "seller" ? "Dashboard Seller" : "Ajukan Jadi Penjual";
   const products = getProductSnapshot();
   const suggestions = products.slice(0, 5);
   return `
     <div class="announcement">
       <div class="container announcement-inner">
         <span><span data-lucide="sparkles"></span> Gratis ongkir untuk transaksi pertamamu</span>
-        <div><a href="#/seller">Mulai Berjualan</a><a href="#/orders">Lacak Pesanan</a><span>Bantuan</span></div>
+        <div><a href="${sellerHref}">${sellerLabel}</a><a href="#/orders">Lacak Pesanan</a><span>Bantuan</span></div>
       </div>
     </div>
     <header class="site-header">
@@ -43,7 +45,7 @@ export function header() {
             <div class="profile-menu" id="profile-menu">
               <a href="#/profile"><span data-lucide="user"></span>Profil Saya</a>
               <a href="#/orders"><span data-lucide="package"></span>Pesanan Saya</a>
-              <a href="#/seller"><span data-lucide="store"></span>Dashboard Seller</a>
+              <a href="#/seller"><span data-lucide="store"></span>${sellerLabel}</a>
               <button id="logout-button"><span data-lucide="log-out"></span>Keluar</button>
             </div>
           ` : `<div class="auth-actions"><a class="btn btn-ghost" href="#/login">Masuk</a><a class="btn btn-primary" href="#/register">Daftar</a></div>`}
@@ -65,7 +67,7 @@ export function header() {
       </div>
       <div class="mobile-drawer-links">
         <a href="#/orders"><span data-lucide="receipt-text"></span>Pesanan Saya</a>
-        <a href="#/seller"><span data-lucide="store"></span>Dashboard Seller</a>
+        <a href="${sellerHref}"><span data-lucide="store"></span>${sellerLabel}</a>
         <a href="${user ? "#/profile" : "#/login"}"><span data-lucide="user"></span>${user ? "Profil Saya" : "Masuk ke Akun"}</a>
       </div>
     </aside>
@@ -88,7 +90,7 @@ export function footer() {
         <div><h4>Bantuan</h4><a href="#/profile">Pengaturan Akun</a><a href="#/cart">Keranjang</a><span>Pusat Resolusi</span></div>
         <div class="trust-card"><span data-lucide="shield-check"></span><div><strong>Belanja lebih tenang</strong><p>Pembayaran aman dan perlindungan transaksi untuk setiap pesanan.</p></div></div>
       </div>
-      <div class="container footer-bottom"><span>&copy; 2026 PasarKita. Marketplace MVP.</span><span>Dibangun untuk pengalaman belanja modern.</span></div>
+      <div class="container footer-bottom"><span>&copy; 2026 PasarKita. Marketplace Indonesia.</span><span>Dibangun untuk pengalaman belanja modern.</span></div>
     </footer>
   `;
 }

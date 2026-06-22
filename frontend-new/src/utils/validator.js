@@ -14,7 +14,7 @@ export const forgotPasswordSchema = z.object({
 export const registerSchema = loginSchema.extend({
   name: z.string().min(3, "Nama lengkap minimal 3 karakter."),
   phone,
-  role: z.enum(["buyer", "seller"]),
+  role: z.enum(["buyer", "seller"]).default("buyer"),
 });
 
 export const addressSchema = z.object({
@@ -34,6 +34,16 @@ export const sellerProductSchema = z.object({
   price: z.coerce.number().min(1000, "Harga minimal Rp1.000."),
   stock: z.coerce.number().int().min(1, "Stok minimal 1."),
   description: z.string().min(20, "Deskripsi minimal 20 karakter."),
+});
+
+export const sellerApplicationSchema = z.object({
+  storeName: z.string().min(4, "Nama toko minimal 4 karakter."),
+  businessCategory: z.string().min(1, "Pilih kategori utama toko."),
+  city: z.string().min(3, "Kota asal toko wajib diisi."),
+  pickupAddress: z.string().min(15, "Alamat pickup perlu ditulis lebih lengkap."),
+  businessPhone: phone,
+  storeDescription: z.string().min(30, "Deskripsi toko minimal 30 karakter."),
+  agreement: z.literal("on", { error: "Setujui ketentuan penjual terlebih dahulu." }),
 });
 
 export function validate(schema, payload) {

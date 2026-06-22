@@ -34,7 +34,7 @@ const routes = [
   { pattern: /^\/register$/, page: registerPage },
   { pattern: /^\/forgot-password$/, page: forgotPasswordPage },
   { pattern: /^\/profile$/, page: profile, auth: true },
-  { pattern: /^\/seller$/, page: sellerDashboard },
+  { pattern: /^\/seller$/, page: sellerDashboard, auth: true },
 ];
 
 let viewRoot;

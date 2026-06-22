@@ -18,7 +18,7 @@ export function render({ path }) {
     ? "Masukkan email akunmu. Kami akan menyiapkan instruksi pemulihan password."
     : isRegister
       ? "Isi data singkat untuk mulai berbelanja."
-      : "Masuk memakai akun yang tersedia atau gunakan akses cepat pembeli di bawah.";
+      : "Masuk dengan email dan password akun PasarKita untuk melanjutkan aktivitas belanja.";
   return `
     <section class="auth-page">
       <article class="auth-visual">
@@ -71,12 +71,11 @@ export function render({ path }) {
             </div>
             <small class="form-error" data-error-for="password"></small>
           </label>`}
-          ${isRegister ? `<label><span>Nomor telepon</span><input name="phone" autocomplete="tel" required placeholder="08xxxxxxxxxx" /><small class="form-error" data-error-for="phone"></small></label><label><span>Tipe akun</span><select name="role"><option value="buyer">Pembeli</option><option value="seller">Seller</option></select><small class="form-error" data-error-for="role"></small></label>` : ""}
+          ${isRegister ? `<label><span>Nomor telepon</span><input name="phone" autocomplete="tel" required placeholder="08xxxxxxxxxx" /><small class="form-error" data-error-for="phone"></small></label>` : ""}
           ${isForgotPassword ? "" : isRegister ? "" : `<div class="auth-helper"><label><input type="checkbox" checked /> Ingat saya</label><a href="#/forgot-password">Lupa password?</a></div>`}
           <button class="btn btn-primary full" type="submit">${isForgotPassword ? "Kirim Instruksi Reset" : isRegister ? "Daftar Sekarang" : "Masuk"}</button>
           <div class="auth-divider"><span>atau</span></div>
           <a class="btn btn-secondary full" href="${isRegister || isForgotPassword ? "#/login" : "#/register"}">${isRegister ? "Sudah punya akun? Masuk" : isForgotPassword ? "Kembali ke halaman masuk" : "Belum punya akun? Daftar"}</a>
-          ${!isRegister && !isForgotPassword ? `<button class="quick-login" type="button" id="quick-login"><span data-lucide="zap"></span>Masuk cepat sebagai pembeli</button>` : ""}
         </form>
       </div>
     </section>
@@ -118,15 +117,6 @@ export function afterRender({ path, navigate }) {
     try {
       const user = isRegister ? await registerUser(result.data) : await loginUser(result.data);
       toast(isRegister ? `Akun ${escapeHtml(user.name)} berhasil dibuat.` : `Selamat datang kembali, ${escapeHtml(user.name)}.`);
-      navigate(consumePendingRoute());
-    } catch (error) {
-      toast(error.message, "error");
-    }
-  });
-  document.querySelector("#quick-login")?.addEventListener("click", async () => {
-    try {
-      await loginUser({ email: "buyer@pasarkita.local", password: "password123" });
-      toast("Login sebagai pembeli berhasil.");
       navigate(consumePendingRoute());
     } catch (error) {
       toast(error.message, "error");

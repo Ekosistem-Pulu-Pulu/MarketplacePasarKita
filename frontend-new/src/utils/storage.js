@@ -7,6 +7,7 @@ const KEYS = {
   cart: "pasarkita_cart",
   orders: "pasarkita_orders",
   pendingRoute: "pasarkita_pending_route",
+  sellerApplications: "pasarkita_seller_applications",
 };
 
 const defaultAddress = {
@@ -93,6 +94,33 @@ export function register(payload) {
 
 export function updateUser(updates) {
   return write(KEYS.user, withUserDefaults({ ...getUser(), ...updates }));
+}
+
+function currentUserKey() {
+  const user = getUser();
+  return user?.id || user?.email || "guest";
+}
+
+export function getSellerApplication() {
+  return read(KEYS.sellerApplications, {})[currentUserKey()] || null;
+}
+
+export function saveSellerApplication(payload) {
+  const applications = read(KEYS.sellerApplications, {});
+  const application = {
+    id: `SELLER-APP-${Date.now()}`,
+    status: "PENDING_REVIEW",
+    submittedAt: new Date().toISOString(),
+    applicant: {
+      id: getUser()?.id || "",
+      name: getUser()?.name || "",
+      email: getUser()?.email || "",
+    },
+    ...payload,
+  };
+  applications[currentUserKey()] = application;
+  write(KEYS.sellerApplications, applications);
+  return application;
 }
 
 export function logout() {

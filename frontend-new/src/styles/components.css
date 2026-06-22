@@ -397,6 +397,33 @@ input:focus, select:focus, textarea:focus { border-color: var(--primary); box-sh
 .seller-table-row.header { border: 0; color: #929aac; font-weight: 800; text-transform: uppercase; }
 .seller-product { display: flex; align-items: center; gap: 8px; color: var(--ink); }
 .seller-product img { width: 37px; height: 34px; border-radius: 7px; object-fit: cover; }
+.seller-apply-page { min-height: 100vh; display: grid; grid-template-columns: minmax(320px, .85fr) minmax(420px, 1.1fr); align-items: center; gap: 34px; padding: 40px max(24px, 8vw); background: radial-gradient(circle at top left, rgba(53, 88, 220, .18), transparent 34%), linear-gradient(135deg, #17213b, #315bd8 48%, #f8fafc 48%); }
+.seller-apply-brand { position: fixed; top: 28px; left: max(24px, 8vw); color: white; z-index: 2; }
+.seller-apply-hero { display: grid; align-content: center; gap: 18px; color: white; }
+.seller-apply-hero h1 { max-width: 560px; font-size: clamp(34px, 5vw, 62px); line-height: .98; letter-spacing: -.05em; }
+.seller-apply-hero p { max-width: 500px; color: rgba(255,255,255,.84); font-size: 14px; line-height: 1.8; }
+.seller-apply-points { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.seller-apply-points span { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(255,255,255,.1); color: white; font-size: 11px; font-weight: 800; backdrop-filter: blur(10px); }
+.seller-apply-points svg { width: 16px; }
+.seller-apply-card { width: min(100%, 720px); justify-self: end; display: grid; gap: 16px; padding: 30px; border: 1px solid var(--line); border-radius: 28px; background: rgba(255,255,255,.96); box-shadow: 0 28px 70px rgba(15, 23, 42, .18); color: var(--ink); }
+.seller-apply-card h1, .seller-apply-card h2 { letter-spacing: -.03em; }
+.seller-apply-card h1 { font-size: clamp(26px, 3vw, 42px); line-height: 1.05; }
+.seller-apply-card h2 { font-size: 24px; }
+.seller-apply-card p { color: var(--muted); line-height: 1.7; }
+.seller-apply-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.seller-apply-grid label { display: grid; gap: 7px; color: var(--ink); font-size: .82rem; font-weight: 800; }
+.seller-apply-grid .wide { grid-column: 1 / -1; }
+.seller-apply-grid input, .seller-apply-grid select, .seller-apply-grid textarea { width: 100%; border-color: var(--line); background: #fff; color: var(--ink); font-weight: 600; }
+.seller-apply-agreement { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.6; }
+.seller-apply-agreement input { margin-top: 4px; accent-color: var(--primary); }
+.seller-apply-status { text-align: center; justify-items: center; }
+.seller-apply-status .status-icon { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 22px; background: var(--primary-soft); color: var(--primary); }
+.seller-apply-status .status-icon svg { width: 30px; height: 30px; }
+.seller-apply-summary { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; }
+.seller-apply-summary span { display: grid; gap: 5px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #f8fafc; }
+.seller-apply-summary small { color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.seller-apply-summary strong { font-size: 13px; }
+.seller-apply-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .confirm-dialog { width: min(400px, calc(100% - 28px)); border: 0; border-radius: 20px; padding: 0; box-shadow: var(--shadow); }
 .confirm-dialog::backdrop { background: rgba(17, 25, 48, .52); backdrop-filter: blur(3px); }
 .confirm-dialog form { display: grid; justify-items: center; gap: 10px; padding: 27px; text-align: center; }

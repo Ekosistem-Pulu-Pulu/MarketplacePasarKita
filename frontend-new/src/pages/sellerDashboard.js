@@ -3,8 +3,8 @@ import { SellerTable } from "../components/SellerTable.js";
 import { categories } from "../data/categories.js";
 import { addSellerProduct, getSellerDashboard } from "../services/sellerService.js";
 import { formatCurrency, formatNumber } from "../utils/formatCurrency.js";
-import { getUser } from "../utils/storage.js";
-import { sellerProductSchema, showFormErrors, validate } from "../utils/validator.js";
+import { getSellerApplication, getUser, saveSellerApplication } from "../utils/storage.js";
+import { sellerApplicationSchema, sellerProductSchema, showFormErrors, validate } from "../utils/validator.js";
 import { escapeHtml, toast } from "../utils/ui.js";
 
 function sidebar() {
@@ -40,10 +40,73 @@ function productModal() {
   `;
 }
 
+function applicationStatus(application) {
+  if (!application) return "";
+  const submittedAt = new Date(application.submittedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+  return `
+    <section class="seller-apply-page">
+      <a class="brand seller-apply-brand" href="#/"><span class="brand-mark"><span data-lucide="shopping-bag"></span></span><span>Pasar<span>Kita</span></span></a>
+      <article class="seller-apply-card seller-apply-status">
+        <span class="status-icon"><span data-lucide="hourglass"></span></span>
+        <span class="eyebrow">Pengajuan sedang ditinjau</span>
+        <h1>Pengajuan toko ${escapeHtml(application.storeName)} sudah diterima.</h1>
+        <p>Tim PasarKita sedang memverifikasi data toko, alamat pickup, dan kategori usaha. Kamu akan mendapat pemberitahuan setelah proses review selesai.</p>
+        <div class="seller-apply-summary">
+          <span><small>Status</small><strong>Menunggu Review</strong></span>
+          <span><small>Tanggal pengajuan</small><strong>${submittedAt}</strong></span>
+          <span><small>Kategori</small><strong>${escapeHtml(application.businessCategory)}</strong></span>
+        </div>
+        <div class="seller-apply-actions">
+          <a class="btn btn-primary" href="#/products">Kembali Belanja</a>
+          <a class="btn btn-secondary" href="#/profile">Lihat Profil</a>
+        </div>
+      </article>
+    </section>
+  `;
+}
+
+function sellerApplicationForm(user) {
+  return `
+    <section class="seller-apply-page">
+      <a class="brand seller-apply-brand" href="#/"><span class="brand-mark"><span data-lucide="shopping-bag"></span></span><span>Pasar<span>Kita</span></span></a>
+      <article class="seller-apply-hero">
+        <span class="eyebrow light">Pendaftaran penjual</span>
+        <h1>Ajukan toko dan mulai berjualan di PasarKita.</h1>
+        <p>Lengkapi data toko agar tim PasarKita dapat memverifikasi kesiapan operasional, alamat pickup, dan kategori produkmu.</p>
+        <div class="seller-apply-points">
+          <span><i data-lucide="shield-check"></i>Verifikasi data toko</span>
+          <span><i data-lucide="package-check"></i>Alamat pickup jelas</span>
+          <span><i data-lucide="badge-check"></i>Review sebelum aktif</span>
+        </div>
+      </article>
+      <form class="seller-apply-card seller-application-form" id="seller-application-form" novalidate>
+        <span class="eyebrow">Data toko</span>
+        <h2>Form pengajuan penjual</h2>
+        <p>Akun aktif: <strong>${escapeHtml(user.name)}</strong> · ${escapeHtml(user.email)}</p>
+        <div class="seller-apply-grid">
+          <label><span>Nama toko</span><input name="storeName" class="input input-bordered" placeholder="Contoh: Nusa Techspace" /><small class="form-error" data-error-for="storeName"></small></label>
+          <label><span>Kategori utama</span><select name="businessCategory" class="select select-bordered"><option value="">Pilih kategori</option>${categories.map((category) => `<option value="${category.name}">${category.name}</option>`).join("")}</select><small class="form-error" data-error-for="businessCategory"></small></label>
+          <label><span>Kota asal toko</span><input name="city" class="input input-bordered" placeholder="Contoh: Bandung" /><small class="form-error" data-error-for="city"></small></label>
+          <label><span>Nomor WhatsApp bisnis</span><input name="businessPhone" class="input input-bordered" placeholder="08xxxxxxxxxx" /><small class="form-error" data-error-for="businessPhone"></small></label>
+          <label class="wide"><span>Alamat pickup</span><textarea name="pickupAddress" class="textarea textarea-bordered" rows="3" placeholder="Tulis alamat lengkap untuk pickup kurir."></textarea><small class="form-error" data-error-for="pickupAddress"></small></label>
+          <label class="wide"><span>Deskripsi toko</span><textarea name="storeDescription" class="textarea textarea-bordered" rows="4" placeholder="Jelaskan produk yang dijual, kapasitas operasional, dan keunggulan toko."></textarea><small class="form-error" data-error-for="storeDescription"></small></label>
+        </div>
+        <label class="seller-apply-agreement"><input type="checkbox" name="agreement" /> <span>Saya menyatakan data toko benar dan bersedia mengikuti ketentuan penjual PasarKita.</span></label>
+        <small class="form-error" data-error-for="agreement"></small>
+        <button class="btn btn-primary full" type="submit"><span data-lucide="send"></span>Kirim Pengajuan</button>
+      </form>
+    </section>
+  `;
+}
+
 export async function render() {
-  const dashboard = await getSellerDashboard();
   const activeUser = getUser();
-  const sellerName = activeUser?.role === "seller" ? activeUser.name : "Nusa Techspace";
+  if (activeUser?.role !== "seller") {
+    const application = getSellerApplication();
+    return application ? applicationStatus(application) : sellerApplicationForm(activeUser);
+  }
+  const dashboard = await getSellerDashboard();
+  const sellerName = activeUser.name;
   return `
     <section class="seller-shell">
       <div class="seller-sidebar-backdrop" id="seller-sidebar-backdrop"></div>
@@ -109,7 +172,26 @@ function renderTables(Tabulator, data) {
   return productTable;
 }
 
-export async function afterRender({ refreshIcons }) {
+export async function afterRender({ refreshIcons, renderRoute }) {
+  const activeUser = getUser();
+  if (activeUser?.role !== "seller") {
+    const form = document.querySelector("#seller-application-form");
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(form).entries());
+      const result = validate(sellerApplicationSchema, payload);
+      showFormErrors(form, result.errors);
+      if (!result.success) {
+        toast("Form pengajuan belum valid. Periksa kembali data toko.", "error");
+        return;
+      }
+      saveSellerApplication(result.data);
+      toast("Pengajuan penjual berhasil dikirim.");
+      renderRoute();
+    });
+    refreshIcons();
+    return;
+  }
   const [{ default: Chart }, { TabulatorFull: Tabulator }] = await Promise.all([
     import("chart.js/auto"),
     import("tabulator-tables"),
