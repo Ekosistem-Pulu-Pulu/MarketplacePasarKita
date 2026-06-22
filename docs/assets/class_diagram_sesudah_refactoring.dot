@@ -1,0 +1,50 @@
+digraph ClassDiagramSesudah {
+    rankdir=LR;
+    graph [fontname="Arial", label="Class Diagram Sesudah Refactoring - Rancangan Edukatif PasarKita", labelloc=top, fontsize=18];
+    node [shape=record, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+
+    Main [label="{main.go|+ main()\l|Bootstrap aplikasi}"];
+    RouteRegistrar [label="{RouteRegistrar|+ RegisterHTTPRoutes()\l+ RegisterAuthRoutes()\l+ RegisterMarketplaceRoutes()\l+ RegisterSellerRoutes()\l|Registrasi route per domain}"];
+    MarketplaceController [label="{MarketplaceController|+ BrowseProducts(ctx)\l+ SaveProduct(ctx)\l+ Checkout(ctx)\l|HTTP adapter tipis}"];
+    PlatformController [label="{PlatformController|+ Cart(ctx)\l+ CheckoutCart(ctx)\l+ SellerDashboard(ctx)\l|HTTP adapter tipis}"];
+    QueryParser [label="{BrowseQueryParser|+ Parse(ctx) BrowseParams\l|Parsing dan validasi query}"];
+    ProductValidator [label="{ProductValidator|+ Validate(input) error\l+ Normalize(input) ProductInput\l|Aturan input produk}"];
+    ProductCatalogService [label="{ProductCatalogService|+ Browse(params)\l+ Save(input)\l|Use case katalog produk}"];
+    CheckoutService [label="{CheckoutService|+ Estimate(userID,input)\l+ Checkout(userID,input,auth)\l|Use case checkout}"];
+    CheckoutValidator [label="{CheckoutValidator|+ ValidateCart(items)\l+ ValidateAddress(userID,address)\l|Aturan checkout}"];
+    PricingService [label="{PricingService|+ MarketplaceFee(subtotal)\l+ ShippingCost(choice,items)\l+ GatewayFee(amount)\l|Perhitungan biaya}"];
+    PaymentGateway [label="{PaymentGateway|+ RequestPayment(order, auth)\l+ MapStatus(status)\l|Adapter dan mapper payment}"];
+    OrderFactory [label="{OrderFactory|+ CreateFromCheckout(context)\l|Pembentukan order dan item}"];
+    AuditService [label="{AuditService|+ Record(event)\l+ Latest(limit)\l|Akses log via service}"];
+    Repositories [label="{Repositories|ProductRepository\lOrderRepository\lCartRepository\lStoreRepository\lAddressRepository\lAuditLogRepository\l|Akses data GORM}"];
+    Models [label="{models|Product\lOrder\lOrderItem\lCartItem\lStore\lAuditLog\l|Entity database}"];
+    AppRouter [label="{frontend AppRouter|+ resolveRoute()\l+ renderPage()\l|Routing saja}"];
+    ShellRenderer [label="{frontend ShellRenderer|+ renderNavbar()\l+ renderFooter()\l+ renderLoading()\l|Layout shell}"];
+    CartFacade [label="{frontend CartFacade|+ list()\l+ add()\l+ update()\l+ remove()\l|API tunggal untuk UI cart}"];
+    GuestCartStore [label="{frontend GuestCartStore|+ read()\l+ write()\l+ clear()\l|localStorage cart}"];
+    ApiCartGateway [label="{frontend ApiCartGateway|+ fetchCart()\l+ addCart()\l+ patchCart()\l|HTTP cart}"];
+    CartNormalizer [label="{frontend CartNormalizer|+ normalizeItem()\l+ enrichProduct()\l|Normalisasi data cart}"];
+
+    Main -> RouteRegistrar;
+    RouteRegistrar -> MarketplaceController;
+    RouteRegistrar -> PlatformController;
+    MarketplaceController -> QueryParser;
+    MarketplaceController -> ProductCatalogService;
+    PlatformController -> CheckoutService;
+    ProductCatalogService -> ProductValidator;
+    ProductCatalogService -> Repositories;
+    CheckoutService -> CheckoutValidator;
+    CheckoutService -> PricingService;
+    CheckoutService -> PaymentGateway;
+    CheckoutService -> OrderFactory;
+    CheckoutService -> AuditService;
+    CheckoutService -> Repositories;
+    AuditService -> Repositories;
+    Repositories -> Models;
+    AppRouter -> ShellRenderer;
+    AppRouter -> CartFacade;
+    CartFacade -> GuestCartStore;
+    CartFacade -> ApiCartGateway;
+    CartFacade -> CartNormalizer;
+}

@@ -1,0 +1,43 @@
+digraph ClassDiagramSebelum {
+    rankdir=LR;
+    graph [fontname="Arial", label="Class Diagram Sebelum Refactoring - PasarKita", labelloc=top, fontsize=18];
+    node [shape=record, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+
+    Main [label="{main.go|+ main()\l+ loadEnv()\l|Inisialisasi config, database, repository, service, controller, route}"];
+    Routes [label="{routes.Register|+ Register(app, cfg, controllers, auditRepo)\l|Swagger setup\lRoot response\lRoute auth/account/marketplace\lLogging endpoint}"];
+    MarketplaceController [label="{MarketplaceController|+ BrowseProducts(ctx)\l+ SaveProduct(ctx)\l+ Checkout(ctx)\l+ IntegratePayment(ctx)\l+ GetMarketplaceFee(ctx)\l|Parsing HTTP dan delegasi service}"];
+    PlatformController [label="{PlatformController|+ Cart(ctx)\l+ AddCart(ctx)\l+ CheckoutCart(ctx)\l+ SellerDashboard(ctx)\l+ ApplyVoucher(ctx)\l+ ShippingOptions(ctx)\l|Banyak endpoint marketplace operasional}"];
+    MarketplaceService [label="{MarketplaceService|+ BrowseProducts(params)\l+ SaveProduct(input)\l+ Checkout(input, auth)\l+ IntegratePayment(input, auth)\l+ PresentOrder(order)\l|Validasi, mapping, pricing, payment, audit}"];
+    PlatformService [label="{PlatformService|+ Cart(userID)\l+ AddCart(userID,input)\l+ CheckoutCart(userID,input,auth)\l+ CalculateCheckout(userID,input)\l+ SellerDashboard(sellerID)\l|Cart, checkout, dashboard, voucher, chat, notification}"];
+    ProductRepository [label="{ProductRepository|+ Browse(filter)\l+ FindByProductID(id)\l+ ListBySeller(sellerID)\l+ Save(product)\l|Query produk dan hidrasi store}"];
+    OrderRepository [label="{OrderRepository|+ Create(order)\l+ FindByOrderID(id)\l+ ListByUser(userID)\l+ ListBySeller(sellerID)\l+ Save(order)\l|Query order dan order item}"];
+    AuditLogRepository [label="{AuditLogRepository|+ Create(log)\l+ Latest(limit)\l|Akses log audit}"];
+    IntegrationService [label="{IntegrationService|+ SendPaymentRequest(req, auth)\l|Integrasi payment/gateway simulasi}"];
+    Models [label="{models|User\lStore\lProduct\lOrder\lOrderItem\lCartItem\lVoucher\lReview\lAuditLog\l|Struct GORM dan konstanta status/role}"];
+    RouterJS [label="{frontend utils/router.js|+ renderRoute()\l+ initRouter()\l+ navigate(path)\l|Route matching, auth guard, shell, global cart/wishlist event}"];
+    CartServiceJS [label="{frontend services/cartService.js|+ listCartItems()\l+ addToCart()\l+ updateCart()\l+ removeFromCart()\l+ syncGuestCart()\l|API cart, localStorage cart, normalisasi produk}"];
+
+    Main -> Routes;
+    Main -> MarketplaceController;
+    Main -> PlatformController;
+    Main -> MarketplaceService;
+    Main -> PlatformService;
+    Routes -> MarketplaceController;
+    Routes -> PlatformController;
+    Routes -> AuditLogRepository [label="akses langsung"];
+    MarketplaceController -> MarketplaceService;
+    PlatformController -> PlatformService;
+    MarketplaceService -> ProductRepository;
+    MarketplaceService -> OrderRepository;
+    MarketplaceService -> AuditLogRepository;
+    MarketplaceService -> IntegrationService;
+    PlatformService -> ProductRepository;
+    PlatformService -> OrderRepository;
+    PlatformService -> AuditLogRepository;
+    PlatformService -> IntegrationService;
+    ProductRepository -> Models;
+    OrderRepository -> Models;
+    AuditLogRepository -> Models;
+    CartServiceJS -> RouterJS [style=dashed, label="state event"];
+}
