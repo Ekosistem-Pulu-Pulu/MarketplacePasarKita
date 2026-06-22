@@ -21,11 +21,13 @@ export async function render() {
           <form class="hero-search" id="hero-search">
             <span data-lucide="search"></span><input name="q" placeholder="Mau cari apa hari ini?" /><button class="btn btn-accent">Cari Produk</button>
           </form>
-          <div class="hero-trust"><span><b>30+</b> produk demo</span><span><b>8</b> kategori</span><span><b>100%</b> transaksi aman</span></div>
+          <div class="hero-trust"><span><b>30+</b> produk aktif</span><span><b>8</b> kategori</span><span><b>100%</b> transaksi aman</span></div>
         </article>
         <aside class="hero-visual">
           <div class="hero-orb"></div>
-          <img src="${products[1]?.image || products[0]?.image}" alt="Produk unggulan PasarKita" />
+          <div class="hero-image-frame">
+            <img src="${products[1]?.image || products[0]?.image}" alt="Produk unggulan PasarKita" />
+          </div>
           <div class="floating-card float-top"><span data-lucide="shield-check"></span><div><strong>Pembayaran Aman</strong><small>Dilindungi PasarKita</small></div></div>
           <div class="floating-card float-bottom"><span data-lucide="truck"></span><div><strong>Gratis Ongkir</strong><small>Min. belanja Rp100rb</small></div></div>
         </aside>

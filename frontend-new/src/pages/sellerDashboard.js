@@ -25,7 +25,7 @@ function productModal() {
         <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4" aria-label="Tutup">x</button></form>
         <span class="eyebrow">Katalog seller</span>
         <h3 class="text-2xl font-bold">Tambah Produk Baru</h3>
-        <p class="text-sm text-slate-500">Produk demo akan langsung masuk ke tabel toko.</p>
+        <p class="text-sm text-slate-500">Produk baru akan langsung masuk ke tabel toko.</p>
         <form id="seller-product-form" class="seller-product-form" novalidate>
           <label><span>Nama produk</span><input class="input input-bordered" name="name" placeholder="Contoh: Smart Lamp Pro" /><small class="form-error" data-error-for="name"></small></label>
           <label><span>Kategori</span><select class="select select-bordered" name="categoryId"><option value="">Pilih kategori</option>${categories.map((category) => `<option value="${category.id}">${category.name}</option>`).join("")}</select><small class="form-error" data-error-for="categoryId"></small></label>
@@ -49,7 +49,7 @@ export async function render() {
       <div class="seller-sidebar-backdrop" id="seller-sidebar-backdrop"></div>
       ${sidebar()}
       <main class="seller-main">
-        <div class="seller-topbar"><button class="seller-menu-toggle" id="seller-menu-toggle" type="button" aria-label="Buka menu seller"><span data-lucide="menu"></span></button><div><span class="eyebrow">Pusat Seller</span><h1>Selamat datang, ${escapeHtml(sellerName)}</h1><p>Berikut performa tokomu hari ini.</p></div><button class="btn btn-primary" id="add-product-demo"><span data-lucide="plus"></span>Tambah Produk</button></div>
+        <div class="seller-topbar"><button class="seller-menu-toggle" id="seller-menu-toggle" type="button" aria-label="Buka menu seller"><span data-lucide="menu"></span></button><div><span class="eyebrow">Pusat Seller</span><h1>Selamat datang, ${escapeHtml(sellerName)}</h1><p>Berikut performa tokomu hari ini.</p></div><button class="btn btn-primary" id="add-product-action"><span data-lucide="plus"></span>Tambah Produk</button></div>
         ${SellerStats(dashboard.stats)}
         <section class="seller-chart-grid">
           <article class="seller-panel seller-chart-panel"><div class="seller-panel-heading"><div><h2>Penjualan Mingguan</h2><p>Omzet selama tujuh hari terakhir.</p></div><span class="badge badge-success badge-outline">+18,4%</span></div><div class="chart-wrap"><canvas id="sales-chart"></canvas></div></article>
@@ -124,7 +124,7 @@ export async function afterRender({ refreshIcons }) {
   document.querySelector("#seller-menu-close")?.addEventListener("click", closeMenu);
   document.querySelector("#seller-sidebar-backdrop")?.addEventListener("click", closeMenu);
   document.querySelector("#seller-sidebar")?.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu));
-  document.querySelector("#add-product-demo")?.addEventListener("click", () => modal.showModal());
+  document.querySelector("#add-product-action")?.addEventListener("click", () => modal.showModal());
   document.querySelector("#cancel-product")?.addEventListener("click", () => modal.close());
   document.querySelector("#seller-product-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();

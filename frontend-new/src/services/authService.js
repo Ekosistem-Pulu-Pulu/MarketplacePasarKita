@@ -24,7 +24,7 @@ export async function loginUser(payload) {
   } catch (error) {
     if (!error.isNetworkError) throw error;
     const user = localLogin(payload.email);
-    persistAuthSession({ token: "offline-demo", user });
+    persistAuthSession({ token: "offline-session", user });
     return user;
   }
 }
@@ -37,7 +37,7 @@ export async function registerUser(payload) {
   } catch (error) {
     if (!error.isNetworkError) throw error;
     const user = localRegister(payload);
-    persistAuthSession({ token: "offline-demo", user });
+    persistAuthSession({ token: "offline-session", user });
     return user;
   }
 }

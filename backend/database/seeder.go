@@ -195,8 +195,8 @@ func seedMarketplaceData(db *gorm.DB) error {
 	}
 
 	notifications := []models.Notification{
-		{NotificationID: "NTF-SEED-001", UserID: "USR001", Title: "Selamat datang di PasarKita", Body: "Akun demo buyer siap digunakan untuk belanja.", Type: "system"},
-		{NotificationID: "NTF-SEED-002", UserID: "SELLER001", Title: "Toko aktif", Body: "Toko demo seller sudah aktif dan menerima pesanan.", Type: "store"},
+		{NotificationID: "NTF-SEED-001", UserID: "USR001", Title: "Selamat datang di PasarKita", Body: "Akun pembeli siap digunakan untuk belanja.", Type: "system"},
+		{NotificationID: "NTF-SEED-002", UserID: "SELLER001", Title: "Toko aktif", Body: "Toko seller sudah aktif dan menerima pesanan.", Type: "store"},
 	}
 	return db.Clauses(clause.OnConflict{DoNothing: true}).Create(&notifications).Error
 }

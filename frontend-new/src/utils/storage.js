@@ -1,11 +1,11 @@
 import { getProductById } from "../data/products.js";
 
 const KEYS = {
-  user: "pasarkita_demo_user",
-  users: "pasarkita_demo_users",
+  user: "pasarkita_user",
+  users: "pasarkita_users",
   token: "pasarkita_api_token",
-  cart: "pasarkita_demo_cart",
-  orders: "pasarkita_demo_orders",
+  cart: "pasarkita_cart",
+  orders: "pasarkita_orders",
   pendingRoute: "pasarkita_pending_route",
 };
 
@@ -56,7 +56,7 @@ export function isLoggedIn() {
 export const isAuthenticated = isLoggedIn;
 
 export function isApiSession() {
-  return isLoggedIn() && getToken() !== "offline-demo";
+  return isLoggedIn() && getToken() !== "offline-session";
 }
 
 export function persistAuthSession({ token, user }) {
@@ -67,7 +67,7 @@ export function persistAuthSession({ token, user }) {
 export function login(email) {
   const known = read(KEYS.users, []).find((user) => user.email === email);
   return write(KEYS.user, known || {
-    id: "user-demo",
+    id: "user-local",
     name: email.toLowerCase().includes("seller") ? "Nadia Seller" : "Raka Pratama",
     email,
     phone: "0812 3456 7890",

@@ -14,7 +14,7 @@ function friendlyError(status, message) {
   if (detail.includes("stok")) return "Stok produk tidak mencukupi.";
   if (detail.includes("alamat")) return "Alamat pengiriman belum sesuai.";
   if (detail.includes("email sudah")) return "Email tersebut sudah digunakan.";
-  return message || "Backend belum dapat dihubungi. Data demo lokal tetap digunakan.";
+  return message || "Backend belum dapat dihubungi. Data lokal tetap digunakan.";
 }
 
 export async function apiRequest(endpoint, options = {}) {
@@ -46,7 +46,7 @@ export async function apiRequest(endpoint, options = {}) {
     return payload;
   } catch (error) {
     if (error.name === "AbortError" || error instanceof TypeError) {
-      const networkError = new Error("Backend belum dapat dihubungi. Data demo lokal tetap digunakan.");
+      const networkError = new Error("Backend belum dapat dihubungi. Data lokal tetap digunakan.");
       networkError.isNetworkError = true;
       throw networkError;
     }

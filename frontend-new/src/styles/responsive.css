@@ -27,8 +27,10 @@
   .filter-title, .filter-panel .btn { grid-column: 1 / -1; }
   .cart-layout, .checkout-layout, .order-detail-layout { grid-template-columns: 1fr; }
   .summary-card { position: static; }
-  .auth-visual { min-height: 330px; }
-  .auth-visual > div { margin-bottom: 0; }
+  .auth-visual { min-height: 420px; }
+  .auth-visual-content { grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr); align-items: center; width: 100%; transform: none; }
+  .auth-copy, .auth-features { grid-column: 1; }
+  .auth-illustration { grid-column: 2; grid-row: 1 / span 2; width: min(300px, 100%); margin: 0; }
   .profile-layout { grid-template-columns: 1fr; }
   .profile-menu-card { grid-template-columns: repeat(5, 1fr); overflow-x: auto; }
   .profile-menu-card a { white-space: nowrap; }
@@ -121,7 +123,10 @@
   .status-timeline { grid-template-columns: 1fr; gap: 9px; }
   .status-timeline div { grid-template-columns: 25px 1fr auto; justify-items: start; align-items: center; text-align: left; }
   .status-timeline div::before { top: -10px; left: 12px; width: 2px; height: 20px; }
-  .auth-visual { min-height: 270px; padding: 28px 20px; }
+  .auth-visual { min-height: 330px; padding: 28px 20px; }
+  .auth-visual-content { grid-template-columns: 1fr; }
+  .auth-copy, .auth-features, .auth-illustration { grid-column: auto; grid-row: auto; }
+  .auth-illustration { width: min(260px, 72%); margin: -4px 0 -10px; }
   .auth-visual h1 { font-size: 28px; }
   .auth-form-wrap { padding: 20px 12px 90px; }
   .auth-card { padding: 20px; }

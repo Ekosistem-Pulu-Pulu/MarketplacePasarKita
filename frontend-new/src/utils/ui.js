@@ -35,6 +35,46 @@ export function animatePage(root = document.querySelector("#view-root")) {
   if (cards.length) {
     gsap.fromTo(cards, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.42, stagger: 0.025, ease: "power2.out", delay: 0.08, clearProps: "transform,opacity" });
   }
+  const floatingCards = [...root.querySelectorAll(".floating-card")];
+  if (floatingCards.length) {
+    gsap.killTweensOf(floatingCards);
+    gsap.killTweensOf(floatingCards.flatMap((card) => [...card.querySelectorAll("svg")]));
+    gsap.fromTo(
+      floatingCards,
+      { opacity: 0, y: 18, scale: 0.92, rotate: -2 },
+      {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        rotate: 0,
+        duration: 0.58,
+        stagger: 0.14,
+        delay: 0.22,
+        ease: "back.out(1.7)",
+        onComplete: () => {
+          floatingCards.forEach((card, index) => {
+            gsap.to(card, {
+              x: index % 2 ? -5 : 5,
+              y: index % 2 ? -9 : -7,
+              rotate: index % 2 ? -1.4 : 1.4,
+              duration: 2.8 + index * 0.35,
+              ease: "sine.inOut",
+              repeat: -1,
+              yoyo: true,
+            });
+            gsap.to(card.querySelector("svg"), {
+              scale: 1.12,
+              duration: 1.9 + index * 0.2,
+              ease: "sine.inOut",
+              repeat: -1,
+              yoyo: true,
+              transformOrigin: "50% 50%",
+            });
+          });
+        },
+      },
+    );
+  }
 }
 
 export function confirmDialog({ title, message, confirmLabel = "Ya, lanjutkan", danger = false }) {

@@ -21,6 +21,7 @@ export async function fetchCategories() {
 }
 
 export async function fetchProduct(id) {
+  if (!id || id === "undefined" || id === "null") throw new Error("Produk tidak valid.");
   return unwrapData(await apiRequest(`/marketplace/products/${encodeURIComponent(id)}`));
 }
 
@@ -40,6 +41,7 @@ export async function addCart(productId, qty = 1, variant = "") {
 }
 
 export async function patchCart(productId, payload) {
+  if (!productId) throw new Error("Produk tidak valid.");
   return unwrapData(await apiRequest(`/marketplace/cart/${encodeURIComponent(productId)}`, {
     method: "PATCH",
     body: { productId, ...payload },
@@ -47,6 +49,7 @@ export async function patchCart(productId, payload) {
 }
 
 export async function deleteCart(productId) {
+  if (!productId) throw new Error("Produk tidak valid.");
   return unwrapData(await apiRequest(`/marketplace/cart/${encodeURIComponent(productId)}`, {
     method: "DELETE",
   }));

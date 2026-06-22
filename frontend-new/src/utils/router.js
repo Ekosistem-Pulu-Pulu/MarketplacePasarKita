@@ -12,6 +12,7 @@ import * as payment from "../pages/payment.js";
 import * as orderStatus from "../pages/orderStatus.js";
 import * as loginPage from "../pages/login.js";
 import * as registerPage from "../pages/register.js";
+import * as forgotPasswordPage from "../pages/forgotPassword.js";
 import * as profile from "../pages/profile.js";
 import * as sellerDashboard from "../pages/sellerDashboard.js";
 import { addToCart, getCartCountSnapshot } from "../services/cartService.js";
@@ -31,6 +32,7 @@ const routes = [
   { pattern: /^\/order\/([^/]+)$/, page: orderStatus, keys: ["id"], auth: true },
   { pattern: /^\/login$/, page: loginPage },
   { pattern: /^\/register$/, page: registerPage },
+  { pattern: /^\/forgot-password$/, page: forgotPasswordPage },
   { pattern: /^\/profile$/, page: profile, auth: true },
   { pattern: /^\/seller$/, page: sellerDashboard },
 ];
@@ -67,7 +69,7 @@ export async function renderRoute() {
     return;
   }
 
-  const isImmersive = ["/login", "/register", "/seller"].includes(route.path);
+  const isImmersive = ["/login", "/register", "/forgot-password", "/seller"].includes(route.path);
   headerRoot.innerHTML = isImmersive ? "" : Navbar();
   footerRoot.innerHTML = isImmersive ? "" : Footer();
   viewRoot.innerHTML = `<section class="container route-loading"><span class="spinner"></span><p>Menyiapkan pengalaman belanjamu...</p>${skeleton(4)}</section>`;
@@ -87,7 +89,7 @@ export async function renderRoute() {
         return;
       }
       toast(error.message || "Halaman belum dapat dimuat.", "error");
-      viewRoot.innerHTML = `<section class="container page-space">${emptyState({ icon: "wifi-off", title: "Halaman belum dapat dimuat", message: error.message || "Terjadi kendala saat mengambil data.", action: `<button class="btn btn-primary" type="button" data-retry-route>Coba Lagi</button>` })}</section>`;
+      viewRoot.innerHTML = `<section class="container page-space">${emptyState({ icon: "wifi", title: "Halaman belum dapat dimuat", message: error.message || "Terjadi kendala saat mengambil data.", action: `<button class="btn btn-primary" type="button" data-retry-route>Coba Lagi</button>` })}</section>`;
     }
   }
 

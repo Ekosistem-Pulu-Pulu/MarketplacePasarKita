@@ -1,14 +1,38 @@
 import { addCart, deleteCart, fetchCart, patchCart, syncCart } from "../api/marketplaceApi.js";
 import { getCart, isApiSession } from "../utils/storage.js";
-import { getProduct } from "./productService.js";
+import { getProduct, hasKnownProduct } from "./productService.js";
 
-const GUEST_CART_KEY = "pasarkita_demo_cart";
+const GUEST_CART_KEY = "pasarkita_cart";
 let cartCountSnapshot = 0;
+
+function getItemProductId(item = {}) {
+  return item.productId || item.product_id || item.product?.id || item.id || "";
+}
+
+function normalizeCartItem(item = {}) {
+  const productId = getItemProductId(item);
+  if (!productId || productId === "undefined" || productId === "null") return null;
+  return {
+    productId,
+    qty: Math.max(1, Number(item.qty || item.quantity || 1)),
+    variant: item.variant || "",
+    selected: item.selected ?? true,
+  };
+}
+
+function toStorageCart(items = []) {
+  return items.map(({ product, ...item }) => item);
+}
 
 function readGuestCart() {
   try {
     const cart = JSON.parse(localStorage.getItem(GUEST_CART_KEY) || "[]");
-    return Array.isArray(cart) ? cart : [];
+    if (!Array.isArray(cart)) return [];
+    const normalized = cart.map(normalizeCartItem).filter(Boolean);
+    if (normalized.length !== cart.length || JSON.stringify(normalized) !== JSON.stringify(cart)) {
+      writeGuestCart(normalized);
+    }
+    return normalized;
   } catch {
     return [];
   }
@@ -26,17 +50,29 @@ function dispatchUpdated() {
 }
 
 function normalizeServerCart(data = {}) {
-  const items = data.items || [];
+  const items = (data.items || [])
+    .map((item) => ({ ...item, productId: getItemProductId(item), qty: Math.max(1, Number(item.qty || item.quantity || 1)) }))
+    .filter((item) => item.productId && item.product);
   cartCountSnapshot = items.reduce((total, item) => total + item.qty, 0);
   return items;
 }
 
 async function normalizeGuestCart() {
-  const items = await Promise.all(readGuestCart().map(async (item) => {
-    const product = await getProduct(item.productId);
-    return product ? { ...item, product } : null;
+  const cart = readGuestCart();
+  const items = await Promise.all(cart.map(async (item) => {
+    if (!item.productId) return null;
+    if (!hasKnownProduct(item.productId)) return null;
+    try {
+      const product = await getProduct(item.productId);
+      return product ? { ...item, product } : null;
+    } catch {
+      return null;
+    }
   }));
   const result = items.filter(Boolean);
+  if (result.length !== cart.length) {
+    writeGuestCart(toStorageCart(result));
+  }
   cartCountSnapshot = result.reduce((total, item) => total + item.qty, 0);
   return result;
 }
@@ -56,12 +92,13 @@ export async function listCartItems() {
 
 export function getCartCountSnapshot() {
   if (!cartCountSnapshot) {
-    cartCountSnapshot = getCart().reduce((total, item) => total + Number(item.qty || 0), 0);
+    cartCountSnapshot = readGuestCart().reduce((total, item) => total + Number(item.qty || 0), 0);
   }
   return cartCountSnapshot;
 }
 
 export async function addToCart(productId, qty = 1, variant = "") {
+  if (!productId) throw new Error("Produk tidak valid.");
   if (isApiSession()) {
     const items = normalizeServerCart(await addCart(productId, qty, variant));
     dispatchUpdated();
@@ -78,6 +115,7 @@ export async function addToCart(productId, qty = 1, variant = "") {
 }
 
 export async function updateCart(productId, variant, updates) {
+  if (!productId) return normalizeGuestCart();
   if (isApiSession()) {
     const current = (await listCartItems()).find((item) => item.productId === productId);
     const items = normalizeServerCart(await patchCart(productId, {
@@ -94,6 +132,7 @@ export async function updateCart(productId, variant, updates) {
 }
 
 export async function removeFromCart(productId, variant = "") {
+  if (!productId) return normalizeGuestCart();
   if (isApiSession()) {
     const items = normalizeServerCart(await deleteCart(productId));
     dispatchUpdated();
@@ -105,7 +144,7 @@ export async function removeFromCart(productId, variant = "") {
 
 export async function syncGuestCart() {
   if (!isApiSession()) return [];
-  const guest = readGuestCart();
+  const guest = toStorageCart(await normalizeGuestCart());
   if (!guest.length) return listCartItems();
   const items = normalizeServerCart(await syncCart(guest));
   writeGuestCart([]);

@@ -35,7 +35,7 @@ npm run build
 npm run preview
 ```
 
-## Route Demo
+## Route Utama
 
 - `#/` home
 - `#/products` katalog dan filter
@@ -49,6 +49,6 @@ npm run preview
 - `#/profile` profil pembeli
 - `#/seller` seller dashboard
 
-Gunakan tombol **Masuk cepat sebagai buyer demo** untuk login dengan `buyer@pasarkita.local` / `password123`. Akun seller backend adalah `seller@pasarkita.local` / `password123`.
+Gunakan tombol **Masuk cepat sebagai pembeli** untuk login dengan `buyer@pasarkita.local` / `password123`. Akun seller backend adalah `seller@pasarkita.local` / `password123`.
 
 `VITE_API_BASE_URL` dapat diubah pada `.env` jika backend berjalan pada host atau port lain. Guest cart tetap berada di localStorage dan disinkronkan ke backend setelah login.

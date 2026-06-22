@@ -67,9 +67,9 @@ Auto migrate membuat tabel berikut:
 
 Seeder otomatis mengisi:
 
-- 32 produk demo sesuai katalog `frontend-new`.
-- 8 kategori dan 8 toko demo.
-- 4 order demo dengan status `PENDING_PAYMENT`, `PAID`, `PAYMENT_FAILED`, dan `SHIPPED`.
+- 32 produk aktif sesuai katalog `frontend-new`.
+- 8 kategori dan 8 toko aktif.
+- 4 order awal dengan status `PENDING_PAYMENT`, `PAID`, `PAYMENT_FAILED`, dan `SHIPPED`.
 - Audit log awal untuk simulasi request marketplace.
 
 ## Catatan Integrasi

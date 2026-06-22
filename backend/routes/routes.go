@@ -63,7 +63,7 @@ func Register(app *fiber.App, cfg config.Config, marketplace *controllers.Market
 	authGroup := app.Group("/auth")
 	authGroup.Post("/login", auth.Login)
 	authGroup.Get("/me", auth.Me)
-	authGroup.Get("/demo-users", auth.DemoUsers)
+	authGroup.Get("/accounts", auth.AccountUsers)
 
 	accountGroup := app.Group("/account", middleware.OptionalAuth(cfg), middleware.RequestLogger(auditRepo))
 	accountGroup.Post("/register", account.Register)

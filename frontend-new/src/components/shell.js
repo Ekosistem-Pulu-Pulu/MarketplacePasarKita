@@ -28,7 +28,7 @@ export function header() {
         <a class="category-trigger" href="#/products"><span data-lucide="layout-grid"></span>Kategori</a>
         <form class="global-search" id="global-search">
           <span data-lucide="search"></span>
-          <input name="q" autocomplete="off" placeholder="Cari produk, kategori, atau toko..." />
+          <input name="q" autocomplete="off" placeholder="Cari produk, kategori, atau nama toko" />
           <kbd>Enter</kbd>
           <div class="search-suggestions" id="search-suggestions">
             <small>Pencarian populer</small>
@@ -88,7 +88,7 @@ export function footer() {
         <div><h4>Bantuan</h4><a href="#/profile">Pengaturan Akun</a><a href="#/cart">Keranjang</a><span>Pusat Resolusi</span></div>
         <div class="trust-card"><span data-lucide="shield-check"></span><div><strong>Belanja lebih tenang</strong><p>Pembayaran aman dan perlindungan transaksi untuk setiap pesanan.</p></div></div>
       </div>
-      <div class="container footer-bottom"><span>&copy; 2026 PasarKita. Frontend demo MVP.</span><span>Dibuat untuk presentasi produk.</span></div>
+      <div class="container footer-bottom"><span>&copy; 2026 PasarKita. Marketplace MVP.</span><span>Dibangun untuk pengalaman belanja modern.</span></div>
     </footer>
   `;
 }

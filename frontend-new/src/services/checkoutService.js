@@ -39,7 +39,7 @@ export async function getCheckoutTotals({ items, addressId, shipping, payment })
 
 export async function submitCheckout({ addressId, shipping, payment }) {
   if (!isApiSession()) {
-    const error = new Error("Backend belum dapat dihubungi. Pesanan disimpan sebagai demo lokal.");
+    const error = new Error("Backend belum dapat dihubungi. Pesanan disimpan secara lokal.");
     error.isNetworkError = true;
     throw error;
   }

@@ -18,7 +18,7 @@ import (
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
-type DemoUser struct {
+type AccountUser struct {
 	UserID   string `json:"id"`
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -32,10 +32,10 @@ type LoginInput struct {
 }
 
 type AuthResult struct {
-	Token     string    `json:"token"`
-	TokenType string    `json:"tokenType"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	User      DemoUser  `json:"user"`
+	Token     string      `json:"token"`
+	TokenType string      `json:"tokenType"`
+	ExpiresAt time.Time   `json:"expiresAt"`
+	User      AccountUser `json:"user"`
 }
 
 type JWTClaims struct {
@@ -52,14 +52,14 @@ type JWTClaims struct {
 type AuthService struct {
 	jwtSecret string
 	userRepo  *repositories.UserRepository
-	users     []DemoUser
+	users     []AccountUser
 }
 
 func NewAuthService(jwtSecret string, userRepo *repositories.UserRepository) *AuthService {
 	return &AuthService{
 		jwtSecret: jwtSecret,
 		userRepo:  userRepo,
-		users: []DemoUser{
+		users: []AccountUser{
 			{UserID: "USR001", Name: "Raka Buyer", Email: "buyer@pasarkita.local", Role: "buyer", Password: "password123"},
 			{UserID: "SELLER001", Name: "Toko Sambal Roa", Email: "seller@pasarkita.local", Role: "seller", Password: "password123"},
 			{UserID: "CAT001", Name: "Catalog Admin", Email: "catalog@pasarkita.local", Role: "catalog_admin", Password: "password123"},
@@ -72,13 +72,13 @@ func NewAuthService(jwtSecret string, userRepo *repositories.UserRepository) *Au
 	}
 }
 
-func (s *AuthService) DemoUsers() []DemoUser {
+func (s *AuthService) AccountUsers() []AccountUser {
 	if s.userRepo != nil {
 		dbUsers, err := s.userRepo.ListPublic()
 		if err == nil && len(dbUsers) > 0 {
-			users := make([]DemoUser, 0, len(dbUsers))
+			users := make([]AccountUser, 0, len(dbUsers))
 			for _, user := range dbUsers {
-				users = append(users, DemoUser{
+				users = append(users, AccountUser{
 					UserID: user.UserID,
 					Name:   user.Name,
 					Email:  user.Email,
@@ -89,7 +89,7 @@ func (s *AuthService) DemoUsers() []DemoUser {
 		}
 	}
 
-	users := make([]DemoUser, len(s.users))
+	users := make([]AccountUser, len(s.users))
 	copy(users, s.users)
 	for index := range users {
 		users[index].Password = ""
@@ -191,11 +191,11 @@ func (s *AuthService) ValidateToken(token string) (*JWTClaims, error) {
 	return &claims, nil
 }
 
-func (s *AuthService) findByEmail(email string) (DemoUser, bool) {
+func (s *AuthService) findByEmail(email string) (AccountUser, bool) {
 	if s.userRepo != nil {
 		dbUser, err := s.userRepo.FindByEmail(email)
 		if err == nil {
-			return DemoUser{
+			return AccountUser{
 				UserID:   dbUser.UserID,
 				Name:     dbUser.Name,
 				Email:    dbUser.Email,
@@ -210,10 +210,10 @@ func (s *AuthService) findByEmail(email string) (DemoUser, bool) {
 			return user, true
 		}
 	}
-	return DemoUser{}, false
+	return AccountUser{}, false
 }
 
-func (s *AuthService) passwordMatches(user DemoUser, password string) bool {
+func (s *AuthService) passwordMatches(user AccountUser, password string) bool {
 	if len(user.Password) == 64 && user.Password == models.HashPassword(password, s.jwtSecret) {
 		return true
 	}

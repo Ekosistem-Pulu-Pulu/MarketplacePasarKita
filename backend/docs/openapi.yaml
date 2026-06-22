@@ -282,13 +282,13 @@ paths:
                       data:
                         $ref: '#/components/schemas/User'
 
-  /auth/demo-users:
+  /auth/accounts:
     get:
-      summary: Dapatkan daftar akun demo (untuk testing)
+      summary: Dapatkan daftar akun yang tersedia
       tags: [Auth]
       responses:
         '200':
-          description: List of demo users
+          description: List of available users
 
   /account/register:
     post:

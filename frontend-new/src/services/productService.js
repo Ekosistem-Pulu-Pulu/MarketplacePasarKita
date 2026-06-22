@@ -36,22 +36,27 @@ export async function getProducts(filters = {}) {
     }
   } catch (error) {
     if (!error.isNetworkError) throw error;
-    // Offline demo falls back to the complete local catalog.
+    // Offline mode falls back to the complete local catalog.
   }
   await wait();
   return filterProducts(filters);
 }
 
 export async function getProduct(id) {
+  if (!id || id === "undefined" || id === "null") return null;
   if (cache.has(id)) return cache.get(id);
   try {
     const product = await fetchProduct(id);
     cache.set(id, product);
     return product;
   } catch (error) {
+    if (error.status === 404) {
+      await wait(80);
+      return getProductById(id) || null;
+    }
     if (!error.isNetworkError) throw error;
     await wait(120);
-    return getProductById(id);
+    return getProductById(id) || null;
   }
 }
 
@@ -67,4 +72,9 @@ export async function getSimilarProducts(product, limit = 4) {
 
 export function getProductSnapshot() {
   return snapshot;
+}
+
+export function hasKnownProduct(id) {
+  if (!id || id === "undefined" || id === "null") return false;
+  return cache.has(id) || Boolean(getProductById(id)) || snapshot.some((product) => product.id === id);
 }

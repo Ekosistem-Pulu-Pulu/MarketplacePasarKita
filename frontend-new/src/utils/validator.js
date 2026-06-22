@@ -7,6 +7,10 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Password minimal 6 karakter."),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Format email belum valid."),
+});
+
 export const registerSchema = loginSchema.extend({
   name: z.string().min(3, "Nama lengkap minimal 3 karakter."),
   phone,

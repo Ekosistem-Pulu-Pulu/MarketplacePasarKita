@@ -54,6 +54,6 @@ func (c *AuthController) Me(ctx *fiber.Ctx) error {
 	})
 }
 
-func (c *AuthController) DemoUsers(ctx *fiber.Ctx) error {
-	return ok(ctx, c.service.DemoUsers())
+func (c *AuthController) AccountUsers(ctx *fiber.Ctx) error {
+	return ok(ctx, c.service.AccountUsers())
 }
