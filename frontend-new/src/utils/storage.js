@@ -4,6 +4,8 @@ const KEYS = {
   user: "pasarkita_user",
   users: "pasarkita_users",
   token: "pasarkita_api_token",
+	refreshToken: "pasarkita_refresh_token",
+	tokenExpiresAt: "pasarkita_token_expires_at",
   cart: "pasarkita_cart",
   orders: "pasarkita_orders",
   pendingRoute: "pasarkita_pending_route",
@@ -50,6 +52,10 @@ export function getToken() {
   return localStorage.getItem(KEYS.token) || "";
 }
 
+export function getRefreshToken() {
+	return localStorage.getItem(KEYS.refreshToken) || "";
+}
+
 export function isLoggedIn() {
   return Boolean(getUser() && getToken());
 }
@@ -60,9 +66,16 @@ export function isApiSession() {
   return isLoggedIn() && getToken() !== "offline-session";
 }
 
-export function persistAuthSession({ token, user }) {
-  if (token) localStorage.setItem(KEYS.token, token);
-  return write(KEYS.user, withUserDefaults(user));
+export function persistAuthTokens({ token, accessToken, refreshToken, expiresAt }) {
+	const nextAccessToken = accessToken || token;
+	if (nextAccessToken) localStorage.setItem(KEYS.token, nextAccessToken);
+	if (refreshToken) localStorage.setItem(KEYS.refreshToken, refreshToken);
+	if (expiresAt) localStorage.setItem(KEYS.tokenExpiresAt, expiresAt);
+}
+
+export function persistAuthSession({ token, accessToken, refreshToken, expiresAt, user }) {
+	persistAuthTokens({ token, accessToken, refreshToken, expiresAt });
+	return write(KEYS.user, withUserDefaults(user));
 }
 
 export function login(email) {
@@ -126,6 +139,8 @@ export function saveSellerApplication(payload) {
 export function logout() {
   localStorage.removeItem(KEYS.user);
   localStorage.removeItem(KEYS.token);
+	localStorage.removeItem(KEYS.refreshToken);
+	localStorage.removeItem(KEYS.tokenExpiresAt);
   window.dispatchEvent(new CustomEvent("pasarkita:state", { detail: { key: KEYS.user } }));
 }
 

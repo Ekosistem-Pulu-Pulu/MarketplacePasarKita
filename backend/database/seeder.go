@@ -1,7 +1,6 @@
 package database
 
 import (
-	"os"
 	"time"
 
 	"gorm.io/gorm"
@@ -10,8 +9,8 @@ import (
 	"pasarkita-marketplace-backend/models"
 )
 
-func SeedDatabase(db *gorm.DB) error {
-	if err := seedUsers(db); err != nil {
+func SeedDatabase(db *gorm.DB, seedPassword string) error {
+	if err := seedUsers(db, seedPassword); err != nil {
 		return err
 	}
 
@@ -38,31 +37,34 @@ func SeedDatabase(db *gorm.DB) error {
 	return seedAuditLogs(db)
 }
 
-func seedUsers(db *gorm.DB) error {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "dev-secret"
-	}
+func seedUsers(db *gorm.DB, seedPassword string) error {
 	users := []models.User{
-		{UserID: "USR001", Name: "Raka Buyer", Email: "buyer@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleBuyer, Phone: "081200000001", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER001", Name: "Nusa Techspace", Email: "seller@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000002", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER002", Name: "Sora Living", Email: "sora@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000003", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER003", Name: "Rasa Nusantara", Email: "rasa@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000010", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER004", Name: "Ara Studio", Email: "ara@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000011", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER005", Name: "Sehat Selalu", Email: "sehat@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000012", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER006", Name: "Ruang Baca Co.", Email: "buku@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000013", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER007", Name: "Gerak Aktif", Email: "gerak@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000014", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "SELLER008", Name: "Masa Kini Goods", Email: "masakini@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleSeller, Phone: "081200000015", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "CAT001", Name: "Catalog Admin", Email: "catalog@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleCatalogAdmin, Phone: "081200000004", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "CS001", Name: "Customer Support", Email: "support@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleCustomerSupport, Phone: "081200000005", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "FIN001", Name: "Finance Ops", Email: "finance@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleFinanceOps, Phone: "081200000006", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "FUL001", Name: "Fulfillment Ops", Email: "fulfillment@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleFulfillmentOps, Phone: "081200000007", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "ADM001", Name: "Platform Admin", Email: "admin@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RolePlatformAdmin, Phone: "081200000008", EmailVerified: true, Status: "ACTIVE"},
-		{UserID: "TECH001", Name: "Tech Maintainer", Email: "tech@pasarkita.local", PasswordHash: models.HashPassword("password123", secret), Role: models.RoleTechMaintainer, Phone: "081200000009", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "USR001", Name: "Raka Buyer", Email: "buyer@pasarkita.local", Role: models.RoleBuyer, Phone: "081200000001", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER001", Name: "Nusa Techspace", Email: "seller@pasarkita.local", Role: models.RoleSeller, Phone: "081200000002", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER002", Name: "Sora Living", Email: "sora@pasarkita.local", Role: models.RoleSeller, Phone: "081200000003", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER003", Name: "Rasa Nusantara", Email: "rasa@pasarkita.local", Role: models.RoleSeller, Phone: "081200000010", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER004", Name: "Ara Studio", Email: "ara@pasarkita.local", Role: models.RoleSeller, Phone: "081200000011", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER005", Name: "Sehat Selalu", Email: "sehat@pasarkita.local", Role: models.RoleSeller, Phone: "081200000012", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER006", Name: "Ruang Baca Co.", Email: "buku@pasarkita.local", Role: models.RoleSeller, Phone: "081200000013", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER007", Name: "Gerak Aktif", Email: "gerak@pasarkita.local", Role: models.RoleSeller, Phone: "081200000014", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "SELLER008", Name: "Masa Kini Goods", Email: "masakini@pasarkita.local", Role: models.RoleSeller, Phone: "081200000015", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "CAT001", Name: "Catalog Admin", Email: "catalog@pasarkita.local", Role: models.RoleCatalogAdmin, Phone: "081200000004", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "CS001", Name: "Customer Support", Email: "support@pasarkita.local", Role: models.RoleCustomerSupport, Phone: "081200000005", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "FIN001", Name: "Finance Ops", Email: "finance@pasarkita.local", Role: models.RoleFinanceOps, Phone: "081200000006", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "FUL001", Name: "Fulfillment Ops", Email: "fulfillment@pasarkita.local", Role: models.RoleFulfillmentOps, Phone: "081200000007", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "ADM001", Name: "Platform Admin", Email: "admin@pasarkita.local", Role: models.RolePlatformAdmin, Phone: "081200000008", EmailVerified: true, Status: "ACTIVE"},
+		{UserID: "TECH001", Name: "Tech Maintainer", Email: "tech@pasarkita.local", Role: models.RoleTechMaintainer, Phone: "081200000009", EmailVerified: true, Status: "ACTIVE"},
+	}
+	for index := range users {
+		hash, err := models.HashPassword(seedPassword)
+		if err != nil {
+			return err
+		}
+		users[index].PasswordHash = hash
 	}
 	return db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"name", "email", "password_hash", "role", "phone", "email_verified", "status"}),
+		DoNothing: true,
 	}).Create(&users).Error
 }
 

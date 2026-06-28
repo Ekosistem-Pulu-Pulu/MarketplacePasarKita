@@ -11,10 +11,11 @@ import (
 
 type MarketplaceController struct {
 	service *services.MarketplaceService
+	auth    *services.AuthService
 }
 
-func NewMarketplaceController(service *services.MarketplaceService) *MarketplaceController {
-	return &MarketplaceController{service: service}
+func NewMarketplaceController(service *services.MarketplaceService, auth *services.AuthService) *MarketplaceController {
+	return &MarketplaceController{service: service, auth: auth}
 }
 
 func (c *MarketplaceController) BrowseProducts(ctx *fiber.Ctx) error {
@@ -95,12 +96,16 @@ func (c *MarketplaceController) SetProductStatus(ctx *fiber.Ctx) error {
 }
 
 func (c *MarketplaceController) Checkout(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
 	var input services.CheckoutInput
 	if err := ctx.BodyParser(&input); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
 	}
 
-	order, err := c.service.Checkout(input, ctx.Get("Authorization"))
+	order, err := c.service.Checkout(claims.UserID, input, ctx.Get("Authorization"))
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -108,12 +113,16 @@ func (c *MarketplaceController) Checkout(ctx *fiber.Ctx) error {
 }
 
 func (c *MarketplaceController) IntegratePayment(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
 	var input services.PaymentIntegrationInput
 	if err := ctx.BodyParser(&input); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "payload JSON tidak valid")
 	}
 
-	order, err := c.service.IntegratePayment(input, ctx.Get("Authorization"))
+	order, err := c.service.IntegratePayment(claims.UserID, input, ctx.Get("Authorization"))
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -121,6 +130,10 @@ func (c *MarketplaceController) IntegratePayment(ctx *fiber.Ctx) error {
 }
 
 func (c *MarketplaceController) GetOrderStatus(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
 	orderID := ctx.Query("order_id")
 	if orderID == "" {
 		orderID = ctx.Params("id")
@@ -129,7 +142,7 @@ func (c *MarketplaceController) GetOrderStatus(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "order_id wajib diisi")
 	}
 
-	order, err := c.service.GetOrder(orderID)
+	order, err := c.service.GetOrderForUser(claims.UserID, orderID)
 	if err != nil {
 		return mapServiceError(err)
 	}
@@ -166,6 +179,9 @@ func mapServiceError(err error) error {
 	}
 	if errors.Is(err, services.ErrNotFound) {
 		return fiber.NewError(fiber.StatusNotFound, "data tidak ditemukan")
+	}
+	if errors.Is(err, services.ErrForbidden) {
+		return fiber.NewError(fiber.StatusForbidden, "akses ke data tersebut ditolak")
 	}
 	return err
 }

@@ -1,6 +1,7 @@
 import * as authApi from "../api/authApi.js";
 import {
   getUser,
+	getRefreshToken,
   login as localLogin,
   logout,
   persistAuthSession,
@@ -12,7 +13,7 @@ import { syncGuestCart } from "./cartService.js";
 export async function loginUser(payload) {
   try {
     const result = await authApi.login(payload.email, payload.password);
-    persistAuthSession({ token: result.token, user: result.user });
+		persistAuthSession(result);
     try {
       const [profile, addresses] = await Promise.all([authApi.getMe(), authApi.getAddresses()]);
       updateUser({ ...profile, addresses });
@@ -32,7 +33,7 @@ export async function loginUser(payload) {
 export async function registerUser(payload) {
   try {
     const result = await authApi.register(payload);
-    persistAuthSession({ token: result.token, user: result.user });
+		persistAuthSession(result);
     return getUser();
   } catch (error) {
     if (!error.isNetworkError) throw error;
@@ -43,7 +44,12 @@ export async function registerUser(payload) {
 }
 
 export async function logoutUser() {
-  logout();
+	const refreshToken = getRefreshToken();
+	try {
+		if (refreshToken) await authApi.logout(refreshToken);
+	} finally {
+		logout();
+	}
 }
 
 export async function getCurrentUser() {

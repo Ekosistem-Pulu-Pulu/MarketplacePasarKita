@@ -1,7 +1,12 @@
 package config
 
-import "os"
-import "strings"
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
 
 type Config struct {
 	AppPort              string
@@ -13,8 +18,16 @@ type Config struct {
 	DBName               string
 	APIGatewayBaseURL    string
 	EnableGatewayForward bool
-	RequireAuth          bool
 	JWTSecret            string
+	AccessTokenTTL       time.Duration
+	RefreshTokenTTL      time.Duration
+	CORSAllowedOrigins   string
+	RateLimitMax         int
+	RateLimitWindow      time.Duration
+	AuthRateLimitMax     int
+	EnableDocs           bool
+	SeedDatabase         bool
+	SeedUserPassword     string
 }
 
 func Load() Config {
@@ -28,9 +41,36 @@ func Load() Config {
 		DBName:               getEnv("DB_NAME", "pasarkita_marketplace"),
 		APIGatewayBaseURL:    getEnv("API_GATEWAY_BASE_URL", "http://localhost:3000"),
 		EnableGatewayForward: getEnv("ENABLE_GATEWAY_FORWARD", "false") == "true",
-		RequireAuth:          getEnv("REQUIRE_AUTH", "false") == "true",
-		JWTSecret:            getEnv("JWT_SECRET", "dev-secret"),
+		JWTSecret:            getStringEnv("JWT_SECRET", ""),
+		AccessTokenTTL:       getDurationEnv("ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL:      getDurationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
+		CORSAllowedOrigins:   getStringEnv("CORS_ALLOWED_ORIGINS", ""),
+		RateLimitMax:         getIntEnv("RATE_LIMIT_MAX", 120),
+		RateLimitWindow:      getDurationEnv("RATE_LIMIT_WINDOW", time.Minute),
+		AuthRateLimitMax:     getIntEnv("AUTH_RATE_LIMIT_MAX", 10),
+		EnableDocs:           getBoolEnv("ENABLE_DOCS", false),
+		SeedDatabase:         getBoolEnv("SEED_DATABASE", false),
+		SeedUserPassword:     getStringEnv("SEED_USER_PASSWORD", ""),
 	}
+}
+
+func (c Config) Validate() error {
+	if len(c.JWTSecret) < 32 {
+		return fmt.Errorf("JWT_SECRET wajib diisi minimal 32 karakter")
+	}
+	if strings.TrimSpace(c.CORSAllowedOrigins) == "" || strings.Contains(c.CORSAllowedOrigins, "*") {
+		return fmt.Errorf("CORS_ALLOWED_ORIGINS wajib berisi origin eksplisit dan tidak boleh memakai wildcard")
+	}
+	if c.AccessTokenTTL <= 0 || c.RefreshTokenTTL <= c.AccessTokenTTL {
+		return fmt.Errorf("ACCESS_TOKEN_TTL harus positif dan REFRESH_TOKEN_TTL harus lebih panjang")
+	}
+	if c.RateLimitMax <= 0 || c.AuthRateLimitMax <= 0 || c.RateLimitWindow <= 0 {
+		return fmt.Errorf("konfigurasi rate limiter tidak valid")
+	}
+	if c.SeedDatabase && len(c.SeedUserPassword) < 12 {
+		return fmt.Errorf("SEED_USER_PASSWORD minimal 12 karakter saat SEED_DATABASE=true")
+	}
+	return nil
 }
 
 func (c Config) DSN() string {
@@ -48,4 +88,37 @@ func getEnv(key string, fallback string) string {
 func getStringEnv(key string, fallback string) string {
 	value := getEnv(key, fallback)
 	return strings.Trim(value, `"'`)
+}
+
+func getDurationEnv(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return -1
+	}
+	return parsed
+}
+
+func getIntEnv(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return -1
+	}
+	return parsed
+}
+
+func getBoolEnv(key string, fallback bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	return err == nil && parsed
 }

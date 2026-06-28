@@ -64,7 +64,7 @@ export function render({ path }) {
           ${isForgotPassword ? "" : `<label>
             <span>Password</span>
             <div class="password-field">
-              <input name="password" type="password" minlength="6" required placeholder="Minimal 6 karakter" />
+			  <input name="password" type="password" minlength="12" maxlength="72" required placeholder="Minimal 12 karakter" />
               <button class="password-toggle" type="button" aria-label="Tampilkan password" aria-pressed="false">
                 <span data-lucide="eye"></span>
               </button>

@@ -22,7 +22,6 @@ func (c *AccountController) Register(ctx *fiber.Ctx) error {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
-		Role     string `json:"role"`
 		Phone    string `json:"phone"`
 	}
 	if err := ctx.BodyParser(&input); err != nil {

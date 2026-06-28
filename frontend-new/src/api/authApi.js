@@ -14,6 +14,14 @@ export async function register(payload) {
   }));
 }
 
+export async function logout(refreshToken) {
+	await apiRequest("/auth/logout", {
+		method: "POST",
+		body: { refreshToken },
+		skipAuthRefresh: true,
+	});
+}
+
 export async function getMe() {
   return unwrapData(await apiRequest("/account/me"));
 }

@@ -53,20 +53,9 @@ func (s *AccountService) Register(input struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Role     string `json:"role"`
 	Phone    string `json:"phone"`
 }) (*AuthResult, error) {
-	allowed := map[string]bool{
-		models.RoleBuyer:  true,
-		models.RoleSeller: true,
-	}
-	if input.Role == "" {
-		input.Role = models.RoleBuyer
-	}
-	if !allowed[input.Role] {
-		return nil, fmt.Errorf("%w: registrasi publik hanya untuk buyer atau seller", ErrBadRequest)
-	}
-	return s.auth.Register(input.Name, input.Email, input.Password, input.Role, input.Phone)
+	return s.auth.Register(input.Name, input.Email, input.Password, input.Phone)
 }
 
 func (s *AccountService) UpdateProfile(userID string, input UpdateProfileInput) (*models.User, error) {
@@ -107,7 +96,7 @@ func (s *AccountService) SaveAddress(userID string, input AddressInput) (*models
 			return nil, err
 		}
 		if address.UserID != userID {
-			return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrBadRequest)
+			return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrForbidden)
 		}
 	} else {
 		address = &models.UserAddress{AddressID: newAddressID(), UserID: userID}
@@ -358,7 +347,7 @@ func (s *PlatformService) CheckoutCart(userID string, input CartCheckoutInput, a
 		return nil, err
 	}
 	if address.UserID != userID {
-		return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrBadRequest)
+		return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrForbidden)
 	}
 
 	subtotal := int64(0)
@@ -504,7 +493,7 @@ func (s *PlatformService) CalculateCheckout(userID string, input CartCheckoutInp
 			return nil, err
 		}
 		if address.UserID != userID {
-			return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrBadRequest)
+			return nil, fmt.Errorf("%w: alamat bukan milik user aktif", ErrForbidden)
 		}
 	}
 
@@ -562,7 +551,28 @@ func (s *PlatformService) ListOrders(userID string) ([]models.Order, error) {
 }
 
 func (s *PlatformService) ListSellerOrders(sellerID string) ([]models.Order, error) {
-	return s.orders.ListBySeller(sellerID)
+	orders, err := s.orders.ListBySeller(sellerID)
+	if err != nil {
+		return nil, err
+	}
+	for orderIndex := range orders {
+		items := make([]models.OrderItem, 0)
+		subtotal := int64(0)
+		for _, item := range orders[orderIndex].Items {
+			if item.SellerID == sellerID {
+				items = append(items, item)
+				subtotal += item.LineTotal
+			}
+		}
+		orders[orderIndex].Items = items
+		orders[orderIndex].Subtotal = subtotal
+		orders[orderIndex].MarketplaceFee = CalculateMarketplaceFee(subtotal)
+		orders[orderIndex].GatewayFee = 0
+		orders[orderIndex].ShippingCost = 0
+		orders[orderIndex].DiscountAmount = 0
+		orders[orderIndex].TotalBayar = subtotal
+	}
+	return orders, nil
 }
 
 func (s *PlatformService) ListSellerProducts(sellerID string) ([]models.Product, error) {
@@ -587,9 +597,20 @@ func (s *PlatformService) SaveSellerProduct(sellerID string, input ProductInput)
 	if input.Harga < 1000 || input.Stok < 0 {
 		return nil, fmt.Errorf("%w: harga minimal 1000 dan stok tidak boleh negatif", ErrBadRequest)
 	}
-	product := &models.Product{ProductID: input.ProductID}
-	if product.ProductID == "" {
-		product.ProductID = newProductID()
+	var product *models.Product
+	if input.ProductID != "" {
+		product, err = s.products.FindByProductID(input.ProductID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		if product.SellerID != sellerID {
+			return nil, fmt.Errorf("%w: produk bukan milik seller aktif", ErrForbidden)
+		}
+	} else {
+		product = &models.Product{ProductID: newProductID()}
 	}
 	product.SellerID = sellerID
 	product.StoreID = store.StoreID
@@ -603,7 +624,7 @@ func (s *PlatformService) SaveSellerProduct(sellerID string, input ProductInput)
 	product.Kategori = input.Kategori
 	product.ImageURL = input.ImageURL
 	product.Variants = input.Variants
-	product.Featured = input.Featured
+	// Kurasi featured adalah kewenangan admin katalog, bukan seller.
 	product.Highlights = input.Highlights
 	product.BeratGram = input.BeratGram
 	if product.BeratGram <= 0 {
@@ -627,7 +648,7 @@ func (s *PlatformService) SellerDashboard(sellerID string) (fiberMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	orders, err := s.orders.ListBySeller(sellerID)
+	orders, err := s.ListSellerOrders(sellerID)
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +684,7 @@ func (s *PlatformService) CancelOrder(userID, orderID, reason string) (*models.O
 		return nil, err
 	}
 	if order.UserID != userID {
-		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrBadRequest)
+		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrForbidden)
 	}
 	if order.StatusOrder == models.StatusCompleted || order.StatusOrder == models.StatusShipped {
 		return nil, fmt.Errorf("%w: order tidak bisa dibatalkan pada status ini", ErrBadRequest)
@@ -687,18 +708,24 @@ func (s *PlatformService) UpdateSellerOrderStatus(sellerID, orderID, status stri
 	if err != nil {
 		return nil, err
 	}
-	owns, err := s.orders.SellerOwnsOrder(sellerID, orderID)
+	owns, err := s.orders.SellerOwnsEntireOrder(sellerID, orderID)
 	if err != nil {
 		return nil, err
 	}
 	if !owns {
-		return nil, fmt.Errorf("%w: order bukan milik seller aktif", ErrBadRequest)
+		return nil, fmt.Errorf("%w: seller tidak boleh mengubah order milik seller lain atau order multi-toko", ErrForbidden)
 	}
 
 	switch strings.ToUpper(strings.TrimSpace(status)) {
 	case "READY_FOR_SHIPMENT", "PACKED", "SIAP_DIKIRIM":
+		if order.StatusOrder != models.StatusPaid {
+			return nil, fmt.Errorf("%w: hanya order berstatus PAID yang dapat dikemas", ErrBadRequest)
+		}
 		order.StatusOrder = models.StatusReadyForShipment
 	case "SHIPPED", "DIKIRIM":
+		if order.StatusOrder != models.StatusReadyForShipment {
+			return nil, fmt.Errorf("%w: order harus dikemas sebelum dikirim", ErrBadRequest)
+		}
 		order.StatusOrder = models.StatusShipped
 	default:
 		return nil, fmt.Errorf("%w: status order tidak valid", ErrBadRequest)
@@ -717,15 +744,8 @@ func (s *PlatformService) OrderTracking(userID, orderID string) (fiberMap, error
 	if err != nil {
 		return nil, err
 	}
-	owns := order.UserID == userID
-	if !owns {
-		owns, err = s.orders.SellerOwnsOrder(userID, orderID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if !owns {
-		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrBadRequest)
+	if order.UserID != userID {
+		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrForbidden)
 	}
 
 	shipment, err := s.data.FindShipmentByOrderID(orderID)

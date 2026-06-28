@@ -1,15 +1,18 @@
 package models
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
-func HashPassword(password, secret string) string {
-	sum := sha256.Sum256([]byte(strings.TrimSpace(password) + ":" + secret))
-	return hex.EncodeToString(sum[:])
+func HashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(hash), err
+}
+
+func CheckPassword(hash, password string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
 type User struct {
@@ -24,6 +27,15 @@ type User struct {
 	Status        string    `gorm:"size:32;not null;default:ACTIVE" json:"status"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+type RefreshToken struct {
+	ID        uint       `gorm:"primaryKey" json:"-"`
+	TokenHash string     `gorm:"uniqueIndex;size:64;not null" json:"-"`
+	UserID    string     `gorm:"size:64;index;not null" json:"-"`
+	ExpiresAt time.Time  `gorm:"index;not null" json:"-"`
+	RevokedAt *time.Time `gorm:"index" json:"-"`
+	CreatedAt time.Time  `json:"-"`
 }
 
 type UserAddress struct {

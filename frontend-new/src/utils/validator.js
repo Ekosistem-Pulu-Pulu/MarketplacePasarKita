@@ -12,6 +12,7 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const registerSchema = loginSchema.extend({
+	password: z.string().min(12, "Password minimal 12 karakter.").max(72, "Password maksimal 72 karakter."),
   name: z.string().min(3, "Nama lengkap minimal 3 karakter."),
   phone,
   role: z.enum(["buyer", "seller"]).default("buyer"),

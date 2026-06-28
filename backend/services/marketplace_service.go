@@ -18,6 +18,7 @@ const MarketplaceFeePercent int64 = 2
 var (
 	ErrBadRequest = errors.New("bad request")
 	ErrNotFound   = errors.New("not found")
+	ErrForbidden  = errors.New("forbidden")
 )
 
 type MarketplaceService struct {
@@ -217,10 +218,11 @@ func (s *MarketplaceService) SetProductStatus(productID string, active bool) (*m
 	return product, nil
 }
 
-func (s *MarketplaceService) Checkout(input CheckoutInput, authorization string) (*models.Order, error) {
-	if strings.TrimSpace(input.UserID) == "" || strings.TrimSpace(input.ProductID) == "" || strings.TrimSpace(input.AlamatPengiriman) == "" {
-		return nil, fmt.Errorf("%w: user_id, product_id, dan alamat_pengiriman wajib diisi", ErrBadRequest)
+func (s *MarketplaceService) Checkout(userID string, input CheckoutInput, authorization string) (*models.Order, error) {
+	if strings.TrimSpace(input.ProductID) == "" || strings.TrimSpace(input.AlamatPengiriman) == "" {
+		return nil, fmt.Errorf("%w: product_id dan alamat_pengiriman wajib diisi", ErrBadRequest)
 	}
+	input.UserID = userID
 	if input.Qty <= 0 {
 		return nil, fmt.Errorf("%w: qty harus lebih dari 0", ErrBadRequest)
 	}
@@ -306,7 +308,7 @@ func (s *MarketplaceService) Checkout(input CheckoutInput, authorization string)
 	return order, nil
 }
 
-func (s *MarketplaceService) IntegratePayment(input PaymentIntegrationInput, authorization string) (*models.Order, error) {
+func (s *MarketplaceService) IntegratePayment(userID string, input PaymentIntegrationInput, authorization string) (*models.Order, error) {
 	if strings.TrimSpace(input.OrderID) == "" {
 		return nil, fmt.Errorf("%w: order_id wajib diisi", ErrBadRequest)
 	}
@@ -317,6 +319,9 @@ func (s *MarketplaceService) IntegratePayment(input PaymentIntegrationInput, aut
 	}
 	if err != nil {
 		return nil, err
+	}
+	if order.UserID != userID {
+		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrForbidden)
 	}
 	if order.StatusOrder == models.StatusPaid || order.StatusOrder == models.StatusCompleted {
 		return order, nil
@@ -354,6 +359,17 @@ func (s *MarketplaceService) GetOrder(orderID string) (*models.Order, error) {
 		return nil, ErrNotFound
 	}
 	return order, err
+}
+
+func (s *MarketplaceService) GetOrderForUser(userID, orderID string) (*models.Order, error) {
+	order, err := s.GetOrder(orderID)
+	if err != nil {
+		return nil, err
+	}
+	if order.UserID != userID {
+		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrForbidden)
+	}
+	return order, nil
 }
 
 func CalculateMarketplaceFee(subtotal int64) int64 {

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -193,6 +194,52 @@ func (r *UserRepository) ListPublic() ([]models.User, error) {
 	return users, err
 }
 
+type RefreshTokenRepository struct {
+	db *gorm.DB
+}
+
+func NewRefreshTokenRepository(db *gorm.DB) *RefreshTokenRepository {
+	return &RefreshTokenRepository{db: db}
+}
+
+func (r *RefreshTokenRepository) Create(token *models.RefreshToken) error {
+	return r.db.Create(token).Error
+}
+
+// Rotate consumes exactly one active refresh token and creates its replacement
+// atomically. Concurrent reuse of the same token therefore fails closed.
+func (r *RefreshTokenRepository) Rotate(tokenHash string, replacement *models.RefreshToken) (*models.RefreshToken, error) {
+	var current models.RefreshToken
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("token_hash = ? AND revoked_at IS NULL AND expires_at > ?", tokenHash, time.Now()).
+			First(&current).Error; err != nil {
+			return err
+		}
+		now := time.Now()
+		if err := tx.Model(&current).Update("revoked_at", &now).Error; err != nil {
+			return err
+		}
+		replacement.UserID = current.UserID
+		return tx.Create(replacement).Error
+	})
+	return &current, err
+}
+
+func (r *RefreshTokenRepository) Revoke(tokenHash string) error {
+	now := time.Now()
+	return r.db.Model(&models.RefreshToken{}).
+		Where("token_hash = ? AND revoked_at IS NULL", tokenHash).
+		Update("revoked_at", &now).Error
+}
+
+func (r *RefreshTokenRepository) RevokeAllForUser(userID string) error {
+	now := time.Now()
+	return r.db.Model(&models.RefreshToken{}).
+		Where("user_id = ? AND revoked_at IS NULL", userID).
+		Update("revoked_at", &now).Error
+}
+
 type AddressRepository struct {
 	db *gorm.DB
 }
@@ -304,6 +351,18 @@ func (r *OrderRepository) SellerOwnsOrder(sellerID, orderID string) (bool, error
 		Where("seller_id = ? AND order_id_ref = ?", sellerID, orderID).
 		Count(&count).Error
 	return count > 0, err
+}
+
+func (r *OrderRepository) SellerOwnsEntireOrder(sellerID, orderID string) (bool, error) {
+	var totalItems int64
+	var sellerItems int64
+	if err := r.db.Model(&models.OrderItem{}).Where("order_id_ref = ?", orderID).Count(&totalItems).Error; err != nil {
+		return false, err
+	}
+	if err := r.db.Model(&models.OrderItem{}).Where("seller_id = ? AND order_id_ref = ?", sellerID, orderID).Count(&sellerItems).Error; err != nil {
+		return false, err
+	}
+	return totalItems > 0 && totalItems == sellerItems, nil
 }
 
 func (r *OrderRepository) Save(order *models.Order) error {

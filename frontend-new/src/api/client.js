@@ -1,5 +1,7 @@
 import { API_BASE_URL, API_TIMEOUT_MS } from "../config/apiConfig.js";
-import { getToken, logout } from "../utils/storage.js";
+import { getRefreshToken, getToken, logout, persistAuthTokens } from "../utils/storage.js";
+
+let refreshPromise = null;
 
 function buildUrl(endpoint) {
   const base = API_BASE_URL.replace(/\/$/, "");
@@ -18,27 +20,32 @@ function friendlyError(status, message) {
 }
 
 export async function apiRequest(endpoint, options = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-  const token = getToken();
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+	const token = getToken();
+	const { retryAfterRefresh = false, skipAuthRefresh = false, ...fetchOptions } = options;
 
   try {
-    const response = await fetch(buildUrl(endpoint), {
-      ...options,
-      signal: options.signal || controller.signal,
+		const response = await fetch(buildUrl(endpoint), {
+			...fetchOptions,
+			signal: fetchOptions.signal || controller.signal,
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-      body: options.body && typeof options.body !== "string"
-        ? JSON.stringify(options.body)
-        : options.body,
-    });
+				...(fetchOptions.headers || {}),
+			},
+			body: fetchOptions.body && typeof fetchOptions.body !== "string"
+				? JSON.stringify(fetchOptions.body)
+				: fetchOptions.body,
+		});
     const contentType = response.headers.get("content-type") || "";
     const payload = contentType.includes("application/json") ? await response.json() : null;
-    if (!response.ok) {
-      const error = new Error(friendlyError(response.status, payload?.message || payload?.error));
+		if (!response.ok) {
+			if (response.status === 401 && token && getRefreshToken() && !retryAfterRefresh && !skipAuthRefresh) {
+				await refreshAccessToken();
+				return apiRequest(endpoint, { ...options, retryAfterRefresh: true });
+			}
+			const error = new Error(friendlyError(response.status, payload?.message || payload?.error));
       error.status = response.status;
       if (response.status === 401 && token) logout();
       throw error;
@@ -54,6 +61,28 @@ export async function apiRequest(endpoint, options = {}) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function refreshAccessToken() {
+	if (refreshPromise) return refreshPromise;
+	refreshPromise = (async () => {
+		const refreshToken = getRefreshToken();
+		const response = await fetch(buildUrl("/auth/refresh"), {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ refreshToken }),
+		});
+		const payload = await response.json().catch(() => null);
+		if (!response.ok || !payload?.data?.accessToken || !payload?.data?.refreshToken) {
+			logout();
+			throw new Error("Sesi telah berakhir. Silakan login kembali.");
+		}
+		persistAuthTokens(payload.data);
+		return payload.data.accessToken;
+	})().finally(() => {
+		refreshPromise = null;
+	});
+	return refreshPromise;
 }
 
 export function unwrapData(response) {
