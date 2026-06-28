@@ -1,5 +1,5 @@
 import { addCart, deleteCart, fetchCart, patchCart, syncCart } from "../api/marketplaceApi.js";
-import { getCart, isApiSession } from "../utils/storage.js";
+import { getCart, isApiSession, isLoggedIn } from "../utils/storage.js";
 import { getProduct, hasKnownProduct } from "./productService.js";
 
 const GUEST_CART_KEY = "pasarkita_cart";
@@ -99,6 +99,11 @@ export function getCartCountSnapshot() {
 
 export async function addToCart(productId, qty = 1, variant = "") {
   if (!productId) throw new Error("Produk tidak valid.");
+  if (!isLoggedIn()) {
+    const error = new Error("Silakan login terlebih dahulu untuk menambahkan produk ke keranjang.");
+    error.code = "AUTH_REQUIRED";
+    throw error;
+  }
   if (isApiSession()) {
     const items = normalizeServerCart(await addCart(productId, qty, variant));
     dispatchUpdated();

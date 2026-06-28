@@ -1,6 +1,14 @@
 import { z } from "zod";
 
 const phone = z.string().regex(/^08[0-9]{8,13}$/, "Nomor telepon harus diawali 08 dan berisi 10-15 digit.");
+const strongPassword = z
+  .string()
+  .min(8, "Password minimal 8 karakter.")
+  .max(72, "Password maksimal 72 karakter.")
+  .regex(/[a-z]/, "Password harus memiliki huruf kecil.")
+  .regex(/[A-Z]/, "Password harus memiliki huruf besar.")
+  .regex(/[0-9]/, "Password harus memiliki angka.")
+  .regex(/[^A-Za-z0-9]/, "Password harus memiliki simbol.");
 
 export const loginSchema = z.object({
   email: z.string().email("Format email belum valid."),
@@ -11,11 +19,16 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email("Format email belum valid."),
 });
 
-export const registerSchema = loginSchema.extend({
-	password: z.string().min(12, "Password minimal 12 karakter.").max(72, "Password maksimal 72 karakter."),
+export const registerSchema = z.object({
   name: z.string().min(3, "Nama lengkap minimal 3 karakter."),
+  email: z.string().email("Format email belum valid."),
+  password: strongPassword,
+  confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi."),
   phone,
   role: z.enum(["buyer", "seller"]).default("buyer"),
+}).refine((data) => data.password === data.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Konfirmasi password tidak sama.",
 });
 
 export const addressSchema = z.object({
