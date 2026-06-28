@@ -2,7 +2,7 @@ import { getProduct, getSimilarProducts, getProducts } from "../services/product
 import { addToCart } from "../services/cartService.js";
 import { ProductGrid } from "../components/ProductGrid.js";
 import { formatCurrency, formatNumber } from "../utils/formatCurrency.js";
-import { isLoggedIn, setPendingRoute } from "../utils/storage.js";
+import { isLoggedIn } from "../utils/storage.js";
 import { emptyState, escapeHtml, toast } from "../utils/ui.js";
 
 let activeProduct;
@@ -56,24 +56,22 @@ export function afterRender({ params, navigate }) {
     button.classList.add("active");
     document.querySelector(".detail-main-image img").src = button.dataset.detailImage;
   }));
+  // Guest checkout didukung: keranjang disimpan di localStorage untuk pengguna
+  // yang belum login. CartService.addToCart sudah menangani kedua skenario ini.
   document.querySelector("#detail-add-cart")?.addEventListener("click", async () => {
-    if (!isLoggedIn()) {
-      setPendingRoute(`/product/${params.id}`);
-      toast("Login terlebih dahulu untuk menambahkan produk ke keranjang.", "info");
-      navigate("/login");
-      return;
+    try {
+      await addToCart(product.id, qty, variant);
+      toast(isLoggedIn() ? "Produk ditambahkan ke keranjang." : "Ditambahkan ke keranjang tamu. Checkout bisa tanpa login.");
+    } catch (error) {
+      toast(error.message || "Gagal menambahkan produk ke keranjang.", "error");
     }
-    await addToCart(product.id, qty, variant);
-    toast("Produk ditambahkan ke keranjang.");
   });
   document.querySelector("#detail-buy-now")?.addEventListener("click", async () => {
-    if (!isLoggedIn()) {
-      setPendingRoute(`/product/${params.id}`);
-      toast("Login terlebih dahulu sebelum membeli produk.", "info");
-      navigate("/login");
-      return;
+    try {
+      await addToCart(product.id, qty, variant);
+      navigate("/checkout");
+    } catch (error) {
+      toast(error.message || "Gagal memproses pembelian.", "error");
     }
-    await addToCart(product.id, qty, variant);
-    navigate("/checkout");
   });
 }

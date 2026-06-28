@@ -16,9 +16,16 @@ type Config struct {
 	DBUser               string
 	DBPassword           string
 	DBName               string
-	APIGatewayBaseURL    string
-	EnableGatewayForward bool
-	JWTSecret            string
+	APIGatewayBaseURL       string
+	EnableGatewayForward    bool
+	LogistikKitaBaseURL     string
+	EnableLogistikKitaFwd   bool
+	SmartBankBaseURL        string
+	EnableSmartBankFwd      bool
+	LogistikKitaSecret      string
+	SmartBankSecret         string
+	GuestCheckoutRateTTL    time.Duration
+	JWTSecret               string
 	AccessTokenTTL       time.Duration
 	RefreshTokenTTL      time.Duration
 	CORSAllowedOrigins   string
@@ -39,9 +46,16 @@ func Load() Config {
 		DBUser:               getEnv("DB_USER", "root"),
 		DBPassword:           getStringEnv("DB_PASSWORD", ""),
 		DBName:               getEnv("DB_NAME", "pasarkita_marketplace"),
-		APIGatewayBaseURL:    getEnv("API_GATEWAY_BASE_URL", "http://localhost:3000"),
-		EnableGatewayForward: getEnv("ENABLE_GATEWAY_FORWARD", "false") == "true",
-		JWTSecret:            getStringEnv("JWT_SECRET", ""),
+		APIGatewayBaseURL:       getEnv("API_GATEWAY_BASE_URL", "http://localhost:3000"),
+		EnableGatewayForward:    getEnv("ENABLE_GATEWAY_FORWARD", "false") == "true",
+		LogistikKitaBaseURL:     getEnv("LOGISTIKKITA_BASE_URL", "http://localhost:3010"),
+		EnableLogistikKitaFwd:   getEnv("ENABLE_LOGISTIKKITA_FORWARD", "false") == "true",
+		SmartBankBaseURL:        getEnv("SMARTBANK_BASE_URL", "http://localhost:3020"),
+		EnableSmartBankFwd:      getEnv("ENABLE_SMARTBANK_FORWARD", "false") == "true",
+		LogistikKitaSecret:      getStringEnv("LOGISTIKKITA_SHARED_SECRET", ""),
+		SmartBankSecret:         getStringEnv("SMARTBANK_SHARED_SECRET", ""),
+		GuestCheckoutRateTTL:    getDurationEnv("GUEST_RATE_TTL", 15*time.Minute),
+		JWTSecret:               getStringEnv("JWT_SECRET", ""),
 		AccessTokenTTL:       getDurationEnv("ACCESS_TOKEN_TTL", 15*time.Minute),
 		RefreshTokenTTL:      getDurationEnv("REFRESH_TOKEN_TTL", 7*24*time.Hour),
 		CORSAllowedOrigins:   getStringEnv("CORS_ALLOWED_ORIGINS", ""),

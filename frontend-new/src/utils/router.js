@@ -26,10 +26,10 @@ const routes = [
   { pattern: /^\/category\/([^/]+)$/, page: category, keys: ["category"] },
   { pattern: /^\/product\/([^/]+)$/, page: productDetail, keys: ["id"] },
   { pattern: /^\/cart$/, page: cart },
-  { pattern: /^\/checkout$/, page: checkout, auth: true },
-  { pattern: /^\/payment\/([^/]+)$/, page: payment, keys: ["id"], auth: true },
-  { pattern: /^\/orders$/, page: orderStatus, auth: true },
-  { pattern: /^\/order\/([^/]+)$/, page: orderStatus, keys: ["id"], auth: true },
+  { pattern: /^\/checkout$/, page: checkout }, // Guest checkout tidak butuh login; legacy flow tetap memakai user address.
+  { pattern: /^\/payment\/([^/]+)$/, page: payment, keys: ["id"] }, // Guest payment intent dapat diakses via tautan setelah POST /marketplace/guest/checkout.
+  { pattern: /^\/orders$/, page: orderStatus }, // Guest yang baru checkout melihat pesanan dari localStorage; jika belum ada, tampilkan empty state.
+  { pattern: /^\/order\/([^/]+)$/, page: orderStatus, keys: ["id"] }, // Guest dapat membuka detail order yang baru saja dibuat di browser ini via fallback orderService → localStorage.
   { pattern: /^\/login$/, page: loginPage },
   { pattern: /^\/register$/, page: registerPage },
   { pattern: /^\/forgot-password$/, page: forgotPasswordPage },
@@ -109,17 +109,13 @@ export function initRouter(roots) {
     if (addButton) {
       event.preventDefault();
       event.stopPropagation();
-      if (!isLoggedIn()) {
-        setPendingRoute((location.hash || "#/products").slice(1) || "/products");
-        toast("Login terlebih dahulu untuk menambahkan produk ke keranjang.", "info");
-        navigate("/login");
-        return;
-      }
+      // Guest checkout: cartService.addToCart menulis ke localStorage jika
+      // user belum login. Tidak perlu redirect ke /login lagi.
       try {
         await addToCart(addButton.dataset.addCart);
-        toast("Produk berhasil ditambahkan ke keranjang.");
+        toast(isLoggedIn() ? "Produk berhasil ditambahkan ke keranjang." : "Ditambahkan ke keranjang tamu. Checkout bisa tanpa login.");
       } catch (error) {
-        toast(error.message, "error");
+        toast(error.message || "Gagal menambahkan produk ke keranjang.", "error");
       }
       return;
     }

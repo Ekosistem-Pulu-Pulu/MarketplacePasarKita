@@ -10,6 +10,36 @@ function statusClass(status) {
   return "info";
 }
 
+function renderRecipientBlock(order) {
+  // Untuk guest order, tampilkan info penerima dengan field alamat terpisah
+  // (disediakan oleh LogistikKita untuk perhitungan ongkir).
+  if (order.recipient && order.recipient.namaPenerima) {
+    const r = order.recipient;
+    return `
+      <div class="recipient-block">
+        <div class="recipient-row"><span data-lucide="user"></span><div><strong>${escapeHtml(r.namaPenerima)}</strong><small>${escapeHtml(r.email || "")}${r.phone ? ` · ${escapeHtml(r.phone)}` : ""}</small></div></div>
+        <div class="recipient-row"><span data-lucide="map-pin"></span><div><strong>${escapeHtml(r.alamatLengkap || "")}</strong><small>${escapeHtml(r.kelurahan || "")}${r.kelurahan && (r.kecamatan || r.kota) ? ", " : ""}${escapeHtml(r.kecamatan || "")}${r.kecamatan && r.kota ? ", " : ""}${escapeHtml(r.kota || "")}${r.country && r.country !== "Indonesia" ? ` · ${escapeHtml(r.country)}` : ""}</small></div></div>
+      </div>
+    `;
+  }
+  return `<div><span>Alamat</span><strong>${order.address?.label || "Rumah"}</strong></div>`;
+}
+
+function renderShipmentTracking(order) {
+  if (!order.shipment && !order.shippingWaybill) return "";
+  const shipment = order.shipment || {};
+  const courier = shipment.courier || order.shipping?.name || "LogistikKita";
+  const waybill = order.shippingWaybill || shipment.waybill || "";
+  const trackingUrl = shipment.trackingUrl || (waybill ? `https://track.logistikkita.id/${encodeURIComponent(waybill)}` : "");
+  const statusText = order.shipmentStatus || shipment.status || "Menunggu penjemputan";
+  return `
+    <div class="shipment-tracking-card">
+      <div class="shipment-tracking-head"><span data-lucide="truck"></span><div><strong>${escapeHtml(courier)}</strong><small>${escapeHtml(statusText)}</small></div></div>
+      ${waybill ? `<div class="shipment-waybill"><span>No. Resi</span><b>${escapeHtml(waybill)}</b>${trackingUrl ? `<a class="btn btn-soft btn-sm" href="${escapeHtml(trackingUrl)}" target="_blank" rel="noopener">Lacak di LogistikKita</a>` : ""}</div>` : ""}
+    </div>
+  `;
+}
+
 let activeOrder;
 
 export async function render({ params }) {
@@ -31,20 +61,33 @@ export async function render({ params }) {
   activeOrder = order;
   const activeIndex = Math.max(0, orderStatuses.indexOf(order.status));
   return `
-    <section class="container page-heading"><div><span class="eyebrow">Detail pesanan</span><h1>${order.id}</h1><p>Dibuat ${new Date(order.createdAt).toLocaleString("id-ID")}</p></div><a class="btn btn-secondary" href="#/orders">Semua Pesanan</a></section>
+    <section class="container page-heading"><div><span class="eyebrow">Detail pesanan${order.isGuest ? " · Guest" : ""}</span><h1>${order.id}</h1><p>Dibuat ${new Date(order.createdAt).toLocaleString("id-ID")}</p></div><a class="btn btn-secondary" href="#/orders">Semua Pesanan</a></section>
     <section class="container order-detail-layout">
       <main>
         <section class="order-status-card"><div class="order-status-head"><div class="status-hero-icon"><span data-lucide="${order.status === "Pesanan Selesai" ? "package-check" : "truck"}"></span></div><div><span class="status-pill ${statusClass(order.status)}">${order.status}</span><h2>${activeIndex < 3 ? "Pesananmu sedang kami siapkan" : activeIndex === 3 ? "Pesanan sedang dalam perjalanan" : "Pesanan telah selesai"}</h2><p>Setiap perubahan status akan tercatat di halaman ini.</p></div></div>
           ${OrderStepper(order.status)}
         </section>
+        ${renderShipmentTracking(order)}
         <section class="checkout-card"><div class="checkout-card-heading"><span data-lucide="package"></span><div><h2>Produk Dipesan</h2><p>${order.items.length} produk dalam pesanan ini.</p></div></div><div class="checkout-products">${order.items.map((item) => `<article><img src="${item.product.image}" alt="" /><div><small>${item.product.store.name}</small><strong>${escapeHtml(item.product.name)}</strong><span>${item.qty} barang · ${item.variant || "Standar"}</span></div><b>${formatCurrency(item.product.price * item.qty)}</b></article>`).join("")}</div></section>
       </main>
       <aside class="summary-card order-side">
-        <h2>Ringkasan Pesanan</h2><div><span>Metode pembayaran</span><strong>${order.payment.name}</strong></div><div><span>Pengiriman</span><strong>${order.shipping.name}</strong></div><div><span>Alamat</span><strong>${order.address?.label || "Rumah"}</strong></div><hr/><div class="summary-total"><span>Total</span><strong>${formatCurrency(order.totals.total)}</strong></div>
+        <h2>Ringkasan Pesanan</h2>
+        <div><span>Metode pembayaran</span><strong>${order.payment?.name || order.paymentMethod || "SmartBank"}</strong></div>
+        <div><span>Pengiriman</span><strong>${renderShippingName(order)}</strong></div>
+        ${renderRecipientBlock(order)}
+        <hr/>
+        <div class="summary-total"><span>Total</span><strong>${formatCurrency(order.totals?.total || 0)}</strong></div>
         ${order.status === "Menunggu Pembayaran" ? `<a class="btn btn-primary full" href="#/payment/${order.id}">Bayar Sekarang</a>` : activeIndex < orderStatuses.length - 1 && order.isLocal ? `<button class="btn btn-soft full" id="advance-status">Simulasikan Status Berikutnya</button>` : `<a class="btn btn-secondary full" href="#/products">Belanja Lagi</a>`}
       </aside>
     </section>
   `;
+}
+
+function renderShippingName(order) {
+  if (order.shipping?.name) return order.shipping.name;
+  if (order.shippingMethod) return order.shippingMethod;
+  if (order.shippingCourier) return `${order.shippingCourier}${order.shippingService ? ` · ${order.shippingService}` : ""}`;
+  return "LogistikKita";
 }
 
 export function afterRender({ params, renderRoute }) {

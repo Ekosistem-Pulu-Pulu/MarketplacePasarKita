@@ -16,7 +16,7 @@ import (
 	"pasarkita-marketplace-backend/services"
 )
 
-func Register(app *fiber.App, cfg config.Config, authService *services.AuthService, marketplace *controllers.MarketplaceController, auth *controllers.AuthController, account *controllers.AccountController, platform *controllers.PlatformController, auditRepo *repositories.AuditLogRepository) {
+func Register(app *fiber.App, cfg config.Config, authService *services.AuthService, marketplace *controllers.MarketplaceController, auth *controllers.AuthController, account *controllers.AccountController, platform *controllers.PlatformController, guest *controllers.GuestController, auditRepo *repositories.AuditLogRepository) {
 	if cfg.EnableDocs {
 		swaggerPath := "./docs/openapi.yaml"
 		if _, err := os.Stat(swaggerPath); os.IsNotExist(err) {
@@ -69,6 +69,7 @@ func Register(app *fiber.App, cfg config.Config, authService *services.AuthServi
 	public.Get("/categories", platform.Categories)
 	public.Get("/products/:id", marketplace.GetProduct)
 	public.Get("/biaya_layanan_marketplace", marketplace.GetMarketplaceFee)
+	public.Get("/biaya_layanan_marketplace_v2", guest.ComputeMarketplaceFee)
 	public.Get("/stores", platform.ListStores)
 	public.Get("/stores/:id", platform.GetStore)
 	public.Get("/vouchers", platform.ListVouchers)
@@ -76,6 +77,18 @@ func Register(app *fiber.App, cfg config.Config, authService *services.AuthServi
 	public.Get("/shipping/options", platform.ShippingOptions)
 	public.Get("/products/:product_id/reviews", platform.ListReviews)
 	public.Get("/products/:product_id/discussions", platform.ListDiscussions)
+
+	// Guest checkout mengikuti arsitektur thin client: tidak perlu auth. Marketplace
+	// memanggil LogistikKita untuk ongkir (lihat POST /marketplace/guest/shipping-rates)
+	// dan SmartBank untuk pembayaran (lihat POST /marketplace/guest/checkout). Setiap
+	// endpoint dapat diaktifkan secara independen via konfigurasi (LOGISTIKKITA_BASE_URL
+	// dan SMARTBANK_BASE_URL); default mode adalah mock deterministik untuk dev lokal.
+	guestGroup := app.Group("/marketplace/guest")
+	guestGroup.Post("/shipping-rates", guest.PreviewShippingRates)
+	guestGroup.Post("/checkout", guest.CreateGuestCheckout)
+	guestGroup.Get("/orders/:id", guest.GetGuestOrder)
+	guestGroup.Post("/orders/:id/finalize-shipment", guest.FinalizeShipment)
+	guestGroup.Get("/payment-status/:id", guest.GetPaymentStatus)
 
 	protected := app.Group("/marketplace", authRequired, middleware.RequestLogger(auditRepo))
 	buyer := protected.Group("", middleware.RequireRoles(models.RoleBuyer))

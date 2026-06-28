@@ -218,3 +218,36 @@ export function updateOrderStatus(id, status) {
   write(KEYS.orders, orders);
   return orders.find((order) => order.id === id);
 }
+
+// === Guest Checkout draft ===
+// Draft disimpan di sessionStorage agar auto hilang saat tab ditutup,
+// tetapi juga punya backup di localStorage untuk recovery jika halaman
+// disegarkan (refresh-safe). Draft berisi alamat penerima split (kota/
+// kecamatan/kelurahan/alamat_lengkap) agar field LogistikKita tidak hilang.
+
+const GUEST_DRAFT_KEY = "pasarkita_guest_draft";
+
+export function saveGuestDraft(payload) {
+  sessionStorage.setItem(GUEST_DRAFT_KEY, JSON.stringify(payload));
+  return payload;
+}
+
+export function readGuestDraft() {
+  try {
+    const session = sessionStorage.getItem(GUEST_DRAFT_KEY);
+    if (session) return JSON.parse(session);
+  } catch {
+    // ignore corrupt session
+  }
+  try {
+    const local = localStorage.getItem(GUEST_DRAFT_KEY);
+    return local ? JSON.parse(local) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearGuestDraft() {
+  sessionStorage.removeItem(GUEST_DRAFT_KEY);
+  localStorage.removeItem(GUEST_DRAFT_KEY);
+}

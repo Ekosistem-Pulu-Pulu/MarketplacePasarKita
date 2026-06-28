@@ -113,3 +113,26 @@ export async function createSellerProduct(payload) {
     body: payload,
   }));
 }
+
+// === Guest Checkout (thin-client ke LogistikKita + SmartBank) ===
+// Marketplace TIDAK menghitung ongkir/fee bank/gateway/pajak sendiri. Semua
+// nilai datang dari response service external — lihat docs/assets/guest_checkout_sequence.html.
+
+export async function previewGuestShippingRates(destination, items = []) {
+  return unwrapData(await apiRequest("/marketplace/guest/shipping-rates", {
+    method: "POST",
+    body: { ...destination, items },
+  }));
+}
+
+export async function submitGuestCheckout(payload) {
+  return unwrapData(await apiRequest("/marketplace/guest/checkout", {
+    method: "POST",
+    body: payload,
+  }));
+}
+
+export async function fetchGuestOrder(orderID, email) {
+  if (!orderID || !email) throw new Error("Order ID dan email wajib diisi untuk melihat pesanan guest.");
+  return unwrapData(await apiRequest(`/marketplace/guest/orders/${encodeURIComponent(orderID)}?email=${encodeURIComponent(email)}`));
+}

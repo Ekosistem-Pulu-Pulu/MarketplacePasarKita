@@ -107,27 +107,55 @@ type Product struct {
 type Order struct {
 	ID                uint        `gorm:"primaryKey" json:"-"`
 	OrderID           string      `gorm:"uniqueIndex;size:48;not null" json:"order_id"`
-	UserID            string      `gorm:"size:64;not null" json:"user_id"`
+	UserID            string      `gorm:"size:64;index;not null;default:''" json:"user_id"`
+	IsGuest           bool        `gorm:"not null;default:false" json:"is_guest"`
+	GuestEmail        string      `gorm:"size:160;index" json:"guest_email"`
+	GuestName         string      `gorm:"size:120" json:"guest_name"`
+	GuestPhone        string      `gorm:"size:32" json:"guest_phone"`
+	Recipient         Recipient   `gorm:"embedded" json:"recipient"`
 	StatusOrder       string      `gorm:"size:40;not null" json:"status_order"`
 	Subtotal          int64       `gorm:"not null" json:"subtotal"`
 	MarketplaceFee    int64       `gorm:"not null" json:"marketplace_fee"`
+	ShippingCost      int64       `gorm:"not null;default:0" json:"shipping_cost"`
+	BankFee           int64       `gorm:"not null;default:0" json:"bank_fee"`
 	GatewayFee        int64       `gorm:"not null;default:0" json:"gateway_fee"`
+	SystemTax         int64       `gorm:"not null;default:0" json:"system_tax"`
 	TotalBayar        int64       `gorm:"not null" json:"total_bayar"`
 	PaymentRequestID  string      `gorm:"size:64" json:"payment_request_id"`
+	PaymentIntentURL  string      `gorm:"size:255" json:"payment_intent_url"`
+	ShippingRateID    string      `gorm:"size:80;index" json:"shipping_rate_id"`
+	ShippingWaybill   string      `gorm:"size:80" json:"shipping_waybill"`
+	ShipmentRef       string      `gorm:"size:80" json:"shipment_ref"`
 	AddressID         string      `gorm:"size:48" json:"address_id"`
 	AlamatPengiriman  string      `gorm:"type:text;not null" json:"alamat_pengiriman"`
 	ShippingCourier   string      `gorm:"size:40" json:"shipping_courier"`
 	ShippingService   string      `gorm:"size:80" json:"shipping_service"`
-	ShippingCost      int64       `gorm:"not null;default:0" json:"shipping_cost"`
+	ShippingETADays   string      `gorm:"size:40" json:"shipping_eta"`
 	VoucherCode       string      `gorm:"size:40" json:"voucher_code"`
 	DiscountAmount    int64       `gorm:"not null;default:0" json:"discount_amount"`
 	PaymentMethod     string      `gorm:"size:60" json:"payment_method"`
 	InvoiceNumber     string      `gorm:"size:80" json:"invoice_number"`
 	CancelReason      string      `gorm:"size:255" json:"cancel_reason"`
 	IntegrationStatus string      `gorm:"size:40;not null" json:"integration_status"`
+	ShipmentStatus    string      `gorm:"size:40" json:"shipment_status"`
 	Items             []OrderItem `gorm:"foreignKey:OrderIDRef;references:OrderID" json:"items"`
 	CreatedAt         time.Time   `json:"created_at"`
 	UpdatedAt         time.Time   `json:"updated_at"`
+}
+
+// Recipient menyimpan detail alamat penerima yang dipisah per field
+// (kota/kecamatan/kelurahan/alamat_lengkap) sehingga layanan logistik
+// dapat menghitung ongkir berdasarkan hierarki administratif.
+type Recipient struct {
+	NamaPenerima   string `gorm:"size:120;not null" json:"nama_penerima"`
+	Email          string `gorm:"size:160" json:"email"`
+	Phone          string `gorm:"size:32;not null" json:"phone"`
+	Country        string `gorm:"size:64;not null;default:'ID'" json:"country"`
+	Kota           string `gorm:"size:80;not null" json:"kota"`
+	Kecamatan      string `gorm:"size:80;not null" json:"kecamatan"`
+	Kelurahan      string `gorm:"size:80;not null" json:"kelurahan"`
+	AlamatLengkap  string `gorm:"type:text;not null" json:"alamat_lengkap"`
+	KodePos        string `gorm:"size:20" json:"kode_pos"`
 }
 
 type OrderItem struct {
@@ -254,8 +282,10 @@ const (
 	StatusPaymentFailed    = "PAYMENT_FAILED"
 	StatusReadyForShipment = "READY_FOR_SHIPMENT"
 	StatusShipped          = "SHIPPED"
+	StatusDelivered        = "DELIVERED"
 	StatusCompleted        = "COMPLETED"
 	StatusCancelled        = "CANCELLED"
+	StatusShipmentFailed   = "SHIPMENT_FAILED"
 )
 
 const (

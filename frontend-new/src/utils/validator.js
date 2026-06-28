@@ -42,6 +42,40 @@ export const checkoutSchema = addressSchema.extend({
   payment: z.string().min(1, "Pilih metode pembayaran."),
 });
 
+// Guest recipient schema memisahkan field alamat sesuai hierarki
+// administratif (Negara > Kota > Kecamatan > Kelurahan > AlamatLengkap)
+// sehingga layanan LogistikKita dapat menghitung ongkir dengan benar.
+// Paling sedikit email ATAU phone harus diisi sebagai kunci lookup order guest.
+export const guestRecipientSchema = z.object({
+  nama_penerima: z.string().min(3, "Nama penerima minimal 3 karakter."),
+  email: z.string().email("Format email belum valid.").optional().or(z.literal("")),
+  phone,
+  country: z.string().min(2, "Negara wajib diisi.").max(64),
+  kota: z.string().min(2, "Kota wajib diisi."),
+  kecamatan: z.string().min(2, "Kecamatan wajib diisi."),
+  kelurahan: z.string().min(2, "Kelurahan wajib diisi."),
+  alamat_lengkap: z.string().min(10, "Alamat lengkap minimal 10 karakter."),
+  kode_pos: z.string().max(20).optional().or(z.literal("")),
+}).refine((data) => Boolean(data.email || data.phone), {
+  path: ["email"],
+  message: "Email atau nomor telepon wajib diisi untuk menerima bukti pesanan.",
+});
+
+// guestCheckoutSchema adalah payload lengkap untuk POST /marketplace/guest/checkout.
+// items minimal satu produk, shipping_rate_id & payment_method wajib dipilih.
+export const guestCheckoutSchema = guestRecipientSchema.extend({
+  items: z.array(z.object({
+    product_id: z.string().min(1, "Product ID wajib."),
+    qty: z.coerce.number().int().min(1, "Qty minimal 1."),
+    variant: z.string().optional(),
+  })).min(1, "Minimal satu produk dalam keranjang."),
+  shipping_rate_id: z.string().min(1, "Pilih jasa pengiriman."),
+  payment_method: z.enum(["virtual-account", "ewallet", "cod", "VIRTUAL_ACCOUNT", "EWALLET", "COD"], {
+    errorMap: () => ({ message: "Pilih metode pembayaran." }),
+  }),
+  voucher_code: z.string().optional().or(z.literal("")),
+});
+
 export const sellerProductSchema = z.object({
   name: z.string().min(5, "Nama produk minimal 5 karakter."),
   categoryId: z.string().min(1, "Pilih kategori produk."),

@@ -99,15 +99,17 @@ export function getCartCountSnapshot() {
 
 export async function addToCart(productId, qty = 1, variant = "") {
   if (!productId) throw new Error("Produk tidak valid.");
-  if (!isLoggedIn()) {
-    const error = new Error("Silakan login terlebih dahulu untuk menambahkan produk ke keranjang.");
-    error.code = "AUTH_REQUIRED";
-    throw error;
-  }
+  // Guest checkout: keranjang disimpan di localStorage. Login tetap didukung
+  // dengan server-side cart saat user sudah login dan memiliki API session.
   if (isApiSession()) {
-    const items = normalizeServerCart(await addCart(productId, qty, variant));
-    dispatchUpdated();
-    return items;
+    try {
+      const items = normalizeServerCart(await addCart(productId, qty, variant));
+      dispatchUpdated();
+      return items;
+    } catch (error) {
+      if (!error.isNetworkError) throw error;
+      // Backend offline: fallback ke localStorage agar UX tidak terputus.
+    }
   }
   const product = await getProduct(productId);
   if (!product) throw new Error("Produk tidak ditemukan.");

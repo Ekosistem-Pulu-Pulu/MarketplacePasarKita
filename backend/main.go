@@ -79,16 +79,20 @@ func main() {
 	marketplaceDataRepo := repositories.NewMarketplaceDataRepository(db)
 
 	integrationService := services.NewIntegrationService(cfg)
+	logistikKitaClient := services.NewLogistikKitaClient(cfg)
+	smartBankClient := services.NewSmartBankClient(cfg)
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, userRepo, refreshTokenRepo)
 	marketplaceService := services.NewMarketplaceService(productRepo, orderRepo, auditRepo, integrationService)
 	accountService := services.NewAccountService(userRepo, addressRepo, authService)
 	platformService := services.NewPlatformService(productRepo, orderRepo, cartRepo, addressRepo, storeRepo, marketplaceDataRepo, integrationService, auditRepo)
+	guestCheckoutService := services.NewGuestCheckoutService(db, productRepo, orderRepo, auditRepo, logistikKitaClient, smartBankClient)
 	authController := controllers.NewAuthController(authService)
 	marketplaceController := controllers.NewMarketplaceController(marketplaceService, authService)
 	accountController := controllers.NewAccountController(accountService, authService)
 	platformController := controllers.NewPlatformController(platformService, authService)
+	guestController := controllers.NewGuestController(guestCheckoutService)
 
-	routes.Register(app, cfg, authService, marketplaceController, authController, accountController, platformController, auditRepo)
+	routes.Register(app, cfg, authService, marketplaceController, authController, accountController, platformController, guestController, auditRepo)
 
 	log.Printf("Marketplace PasarKita API running on :%s", cfg.AppPort)
 	log.Fatal(app.Listen(":" + cfg.AppPort))
