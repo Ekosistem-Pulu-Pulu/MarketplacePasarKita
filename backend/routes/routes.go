@@ -112,6 +112,7 @@ func Register(app *fiber.App, cfg config.Config, authService *services.AuthServi
 	seller := protected.Group("/seller", middleware.RequireRoles(models.RoleSeller))
 	seller.Get("/products", platform.ListSellerProducts)
 	seller.Post("/products", platform.SaveSellerProduct)
+	seller.Post("/upload", platform.UploadImage) // multipart upload gambar produk
 	seller.Get("/dashboard", platform.SellerDashboard)
 	seller.Get("/orders", platform.ListSellerOrders)
 	seller.Patch("/orders/:id/status", platform.UpdateSellerOrderStatus)

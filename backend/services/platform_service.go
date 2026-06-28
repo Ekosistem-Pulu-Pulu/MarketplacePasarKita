@@ -623,6 +623,12 @@ func (s *PlatformService) SaveSellerProduct(sellerID string, input ProductInput)
 	product.CategoryID = input.CategoryID
 	product.Kategori = input.Kategori
 	product.ImageURL = input.ImageURL
+	if len(product.Images) == 0 {
+		product.Images = input.Images
+	}
+	if product.ImageURL == "" && len(product.Images) > 0 {
+		product.ImageURL = product.Images[0]
+	}
 	product.Variants = input.Variants
 	// Kurasi featured adalah kewenangan admin katalog, bukan seller.
 	product.Highlights = input.Highlights

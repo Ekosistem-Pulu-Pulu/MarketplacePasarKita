@@ -65,6 +65,9 @@ type ProductInput struct {
 	CategoryID    string   `json:"categoryId"`
 	ImageURL      string   `json:"image_url"`
 	Image         string   `json:"image"`
+	// Images menyimpan semua URL gambar produk terurut; elemen [0] adalah
+	// gambar primer dan otomatis disalin ke ImageURL jika ImageURL kosong.
+	Images        []string `json:"images"`
 	Variants      []string `json:"variants"`
 	Featured      bool     `json:"featured"`
 	Highlights    []string `json:"highlights"`
@@ -150,6 +153,12 @@ func (s *MarketplaceService) SaveProduct(input ProductInput) (*models.Product, e
 	product.CategoryID = input.CategoryID
 	product.Kategori = input.Kategori
 	product.ImageURL = input.ImageURL
+	if len(product.Images) == 0 {
+		product.Images = input.Images
+	}
+	if product.ImageURL == "" && len(product.Images) > 0 {
+		product.ImageURL = product.Images[0]
+	}
 	product.Variants = input.Variants
 	product.Featured = input.Featured
 	product.Highlights = input.Highlights

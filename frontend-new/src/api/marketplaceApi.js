@@ -1,4 +1,5 @@
-import { apiRequest, unwrapData } from "./client.js";
+import { apiRequest, unwrapData, API_BASE_URL } from "./client.js";
+import { getToken } from "../utils/storage.js";
 
 export async function browseProducts(params = {}) {
   const query = new URLSearchParams({
@@ -112,6 +113,34 @@ export async function createSellerProduct(payload) {
     method: "POST",
     body: payload,
   }));
+}
+
+// Upload gambar produk sebagai multipart — tidak memakai apiRequest karena
+// json-stringify akan merusak FormData. Mengembalikan URL publik siap pakai.
+export async function uploadSellerImage(file, folder = "products") {
+  if (!file) throw new Error("File gambar wajib diisi.");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
+  const base = API_BASE_URL.replace(/\/$/, "");
+  const token = getToken();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${base}/marketplace/seller/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      signal: controller.signal,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.message || `Upload gagal (status ${response.status}).`);
+    }
+    return data?.data ?? data;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // === Guest Checkout (thin-client ke LogistikKita + SmartBank) ===

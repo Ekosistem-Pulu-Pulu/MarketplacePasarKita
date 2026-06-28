@@ -46,6 +46,10 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:      "Marketplace PasarKita API",
 		ErrorHandler: middleware.ErrorHandler,
+		// Naikkan BodyLimit default (4MB) menjadi 8MB supaya upload
+		// gambar produk (maks 4MB) mencapai handler untuk error yang
+		// ramah, bukan opaque 413 dari Fiber.
+		BodyLimit: 8 * 1024 * 1024,
 	})
 
 	app.Use(recover.New())
@@ -81,6 +85,10 @@ func main() {
 	integrationService := services.NewIntegrationService(cfg)
 	logistikKitaClient := services.NewLogistikKitaClient(cfg)
 	smartBankClient := services.NewSmartBankClient(cfg)
+	storageClient, err := services.NewStorageClient(cfg)
+	if err != nil {
+		log.Fatalf("storage client init failed: %v", err)
+	}
 	authService := services.NewAuthService(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL, userRepo, refreshTokenRepo)
 	marketplaceService := services.NewMarketplaceService(productRepo, orderRepo, auditRepo, integrationService)
 	accountService := services.NewAccountService(userRepo, addressRepo, authService)
@@ -89,8 +97,12 @@ func main() {
 	authController := controllers.NewAuthController(authService)
 	marketplaceController := controllers.NewMarketplaceController(marketplaceService, authService)
 	accountController := controllers.NewAccountController(accountService, authService)
-	platformController := controllers.NewPlatformController(platformService, authService)
+	platformController := controllers.NewPlatformController(platformService, authService, storageClient)
 	guestController := controllers.NewGuestController(guestCheckoutService)
+
+	// Sajikan aset hasil upload mock/local agar FE bisa memuat gambar
+	// tanpa CDN selama pengembangan tidak ada service storage nyata.
+	app.Static("/uploads", cfg.StorageLocalRoot)
 
 	routes.Register(app, cfg, authService, marketplaceController, authController, accountController, platformController, guestController, auditRepo)
 

@@ -2,6 +2,7 @@ import { SellerStats } from "../components/SellerStats.js";
 import { SellerTable } from "../components/SellerTable.js";
 import { categories } from "../data/categories.js";
 import { addSellerProduct, getSellerDashboard } from "../services/sellerService.js";
+import { uploadSellerImage } from "../api/marketplaceApi.js";
 import { formatCurrency, formatNumber } from "../utils/formatCurrency.js";
 import { getSellerApplication, getUser, saveSellerApplication } from "../utils/storage.js";
 import { sellerApplicationSchema, sellerProductSchema, showFormErrors, validate } from "../utils/validator.js";
@@ -31,6 +32,7 @@ function productModal() {
           <label><span>Kategori</span><select class="select select-bordered" name="categoryId"><option value="">Pilih kategori</option>${categories.map((category) => `<option value="${category.id}">${category.name}</option>`).join("")}</select><small class="form-error" data-error-for="categoryId"></small></label>
           <label><span>Harga</span><input class="input input-bordered" name="price" type="number" placeholder="199000" /><small class="form-error" data-error-for="price"></small></label>
           <label><span>Stok awal</span><input class="input input-bordered" name="stock" type="number" placeholder="25" /><small class="form-error" data-error-for="stock"></small></label>
+          <label class="wide"><span>Gambar produk (opsional)</span><input class="input input-bordered" type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif" /><small class="form-hint" id="product-image-preview-hint">Format: JPG/PNG/WEBP/GIF, maks 4MB.</small><div id="product-image-preview" class="product-image-preview" hidden></div></label>
           <label class="wide"><span>Deskripsi</span><textarea class="textarea textarea-bordered" name="description" rows="4" placeholder="Jelaskan manfaat dan spesifikasi produk."></textarea><small class="form-error" data-error-for="description"></small></label>
           <div class="modal-action wide"><button type="button" class="btn btn-ghost" id="cancel-product">Batal</button><button class="btn btn-primary" type="submit"><span data-lucide="plus"></span>Tambah Produk</button></div>
         </form>
@@ -210,24 +212,60 @@ export async function afterRender({ refreshIcons, renderRoute }) {
   document.querySelector("#cancel-product")?.addEventListener("click", () => modal.close());
   document.querySelector("#seller-product-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const formEl = event.currentTarget;
+    const fd = new FormData(formEl);
+    const payload = Object.fromEntries(fd.entries());
+    delete payload.image; // file diproses terpisah
     const result = validate(sellerProductSchema, payload);
-    showFormErrors(event.currentTarget, result.errors);
+    showFormErrors(formEl, result.errors);
     if (!result.success) {
       toast("Form produk belum valid.", "error");
       return;
     }
-    const category = categories.find((item) => item.id === result.data.categoryId);
+    const submitBtn = formEl.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
     try {
-      await addSellerProduct({ ...result.data, category: category.name });
+      const fileInput = formEl.querySelector('input[name="image"]');
+      const file = fileInput?.files?.[0];
+      let uploadedUrl = "";
+      if (file) {
+        const result = await uploadSellerImage(file, "products");
+        uploadedUrl = result.url || result.URL || "";
+        if (!uploadedUrl) throw new Error("Upload gambar tidak mengembalikan URL.");
+      }
+      const category = categories.find((item) => item.id === result.data.categoryId);
+      const finalPayload = { ...result.data, category: category.name };
+      if (uploadedUrl) {
+        finalPayload.image = uploadedUrl;
+        finalPayload.images = [uploadedUrl];
+      }
+      await addSellerProduct(finalPayload);
       dashboard = await getSellerDashboard();
       productTable.setData(dashboard.products);
       modal.close();
-      event.currentTarget.reset();
+      formEl.reset();
+      const preview = document.querySelector("#product-image-preview");
+      if (preview) { preview.hidden = true; preview.innerHTML = ""; }
       toast("Produk baru berhasil ditambahkan.");
       refreshIcons();
     } catch (error) {
       toast(error.message, "error");
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
+  });
+
+  // Preview gambar yang dipilih sebelum submit (lokal, tanpa upload).
+  const fileInput = document.querySelector('#seller-product-form input[name="image"]');
+  const preview = document.querySelector("#product-image-preview");
+  fileInput?.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    if (!file || !preview) { if (preview) preview.hidden = true; return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      preview.innerHTML = `<img src="${ev.target.result}" alt="preview" />`;
+      preview.hidden = false;
+    };
+    reader.readAsDataURL(file);
   });
 }

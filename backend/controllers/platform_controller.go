@@ -1,7 +1,11 @@
 package controllers
 
 import (
+	"io"
+	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -11,10 +15,11 @@ import (
 type PlatformController struct {
 	service *services.PlatformService
 	auth    *services.AuthService
+	storage services.StorageClient
 }
 
-func NewPlatformController(service *services.PlatformService, auth *services.AuthService) *PlatformController {
-	return &PlatformController{service: service, auth: auth}
+func NewPlatformController(service *services.PlatformService, auth *services.AuthService, storage services.StorageClient) *PlatformController {
+	return &PlatformController{service: service, auth: auth, storage: storage}
 }
 
 func (c *PlatformController) Cart(ctx *fiber.Ctx) error {
@@ -172,6 +177,78 @@ func (c *PlatformController) SaveSellerProduct(ctx *fiber.Ctx) error {
 		return mapServiceError(err)
 	}
 	return created(ctx, product)
+}
+
+// UploadImage menerima multipart file dari seller/admin-katalog dan
+// mengembalikan URL publik hasil simpan ke backend StorageClient yang aktif
+// (Local / S3 / MinIO / R2 / Cloudinary). Hasil URL disimpan seller di
+// field `images` saat membuat produk.
+//
+// Validasi keamanan:
+//   - Ukuran file 1 byte – 4MB (Fiber BodyLimit middleware mengangkat
+//     batas request menjadi 8MB agar error reaching handler tetap ramah).
+//   - MIME dideteksi ulang dari 512 byte pertama file (http.DetectContentType)
+//     sehingga header Content-Type dari klien tidak dipercaya.
+//   - Key dihasilkan oleh NewUploadKey yang menolak pola path-traversal.
+func (c *PlatformController) UploadImage(ctx *fiber.Ctx) error {
+	claims, err := requireClaims(ctx, c.auth)
+	if err != nil {
+		return err
+	}
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "field 'file' wajib diisi sebagai multipart")
+	}
+	if file.Size == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "file kosong")
+	}
+	const maxSize int64 = 4 * 1024 * 1024 // 4 MB
+	if file.Size > maxSize {
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, "ukuran gambar melebihi 4MB")
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "gagal membaca upload")
+	}
+	defer src.Close()
+
+	// Sniff magic bytes — jangan percaya Content-Type dari klien.
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(src, head)
+	detected := strings.ToLower(http.DetectContentType(head[:n]))
+	allowed := map[string]bool{"image/jpeg": true, "image/png": true, "image/webp": true, "image/gif": true}
+	if !allowed[detected] {
+		return fiber.NewError(fiber.StatusUnsupportedMediaType, "file bukan gambar yang valid (MIME terdeteksi: "+detected+")")
+	}
+	// Kembalikan stream ke awal agar seluruh byte terkirim ke provider.
+	// multipart.File sudah meng-embed io.Seeker lewat interface-nya.
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "gagal memposisikan ulang stream upload")
+	}
+
+	folder := strings.TrimSpace(ctx.FormValue("folder"))
+	if folder == "" {
+		folder = "products"
+	}
+	key, err := services.NewUploadKey(claims.UserID, folder, file.Filename)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	publicURL, err := c.storage.Upload(ctx.UserContext(), key, src, file.Size, detected)
+	if err != nil {
+		return mapServiceError(err)
+	}
+	res := services.UploadResult{
+		Key:         key,
+		URL:         publicURL,
+		Provider:    c.storage.Provider(),
+		ContentType: detected,
+		Size:        file.Size,
+		Ext:         filepath.Ext(file.Filename),
+	}
+	return created(ctx, res)
 }
 
 func (c *PlatformController) SellerDashboard(ctx *fiber.Ctx) error {

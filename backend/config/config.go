@@ -25,6 +25,19 @@ type Config struct {
 	LogistikKitaSecret      string
 	SmartBankSecret         string
 	GuestCheckoutRateTTL    time.Duration
+
+	// Storage abstraction: pilih backend lewat STORAGE_PROVIDER.
+	// Nilai dikenal: "" | "mock" | "local" | "s3" | "minio" | "r2" | "cloudinary".
+	StorageProvider   string
+	StorageBaseURL    string // service endpoint (S3/MinIO/R2/Cloudinary API)
+	StoragePublicURL  string // CDN/base URL untuk browser
+	StorageBucket     string
+	StorageRegion     string
+	StorageAccessKey  string
+	StorageSecretKey  string
+	StorageLocalRoot  string // direktori tulis untuk mode mock/local
+	StorageCloudName  string // khusus Cloudinary
+
 	JWTSecret               string
 	AccessTokenTTL       time.Duration
 	RefreshTokenTTL      time.Duration
@@ -65,6 +78,15 @@ func Load() Config {
 		EnableDocs:           getBoolEnv("ENABLE_DOCS", false),
 		SeedDatabase:         getBoolEnv("SEED_DATABASE", false),
 		SeedUserPassword:     getStringEnv("SEED_USER_PASSWORD", ""),
+		StorageProvider:      getEnv("STORAGE_PROVIDER", "mock"), // mock | s3 | minio | r2 | cloudinary | local
+		StorageBaseURL:       getEnv("STORAGE_BASE_URL", ""),
+		StoragePublicURL:     getEnv("STORAGE_PUBLIC_URL", ""),
+		StorageBucket:        getStringEnv("STORAGE_BUCKET", ""),
+		StorageRegion:        getEnv("STORAGE_REGION", "us-east-1"),
+		StorageAccessKey:     getStringEnv("STORAGE_ACCESS_KEY", ""),
+		StorageSecretKey:     getStringEnv("STORAGE_SECRET_KEY", ""),
+		StorageLocalRoot:     getEnv("STORAGE_LOCAL_ROOT", "./uploads"),
+		StorageCloudName:     getEnv("STORAGE_CLOUD_NAME", ""),
 	}
 }
 

@@ -88,7 +88,12 @@ type Product struct {
 	Stok          int       `gorm:"not null" json:"stock"`
 	CategoryID    string    `gorm:"size:80;index" json:"categoryId"`
 	Kategori      string    `gorm:"size:80;not null" json:"category"`
+	// ImageURL adalah tautan gambar utama (back-compat untuk data lama dan
+	// klien FE yang hanya membaca satu gambar).
 	ImageURL      string    `gorm:"size:255" json:"image"`
+	// Images menyimpan semua URL gambar produk terurut; elemen [0] adalah
+	// primary image yang ikut dengan ImageURL.
+	Images        []string  `gorm:"serializer:json;type:text" json:"images"`
 	Variants      []string  `gorm:"serializer:json;type:text" json:"variants"`
 	Featured      bool      `gorm:"not null;default:false" json:"featured"`
 	Highlights    []string  `gorm:"serializer:json;type:text" json:"highlights"`
