@@ -57,12 +57,23 @@ export function afterRender({ params, navigate }) {
     document.querySelector(".detail-main-image img").src = button.dataset.detailImage;
   }));
   document.querySelector("#detail-add-cart")?.addEventListener("click", async () => {
+    if (!isLoggedIn()) {
+      setPendingRoute(`/product/${params.id}`);
+      toast("Login terlebih dahulu untuk menambahkan produk ke keranjang.", "info");
+      navigate("/login");
+      return;
+    }
     await addToCart(product.id, qty, variant);
     toast("Produk ditambahkan ke keranjang.");
   });
   document.querySelector("#detail-buy-now")?.addEventListener("click", async () => {
+    if (!isLoggedIn()) {
+      setPendingRoute(`/product/${params.id}`);
+      toast("Login terlebih dahulu sebelum membeli produk.", "info");
+      navigate("/login");
+      return;
+    }
     await addToCart(product.id, qty, variant);
-    if (!isLoggedIn()) { setPendingRoute("/checkout"); navigate("/login"); return; }
     navigate("/checkout");
   });
 }

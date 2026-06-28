@@ -17,7 +17,7 @@ export function render({ path }) {
   const formDescription = isForgotPassword
     ? "Masukkan email akunmu. Kami akan menyiapkan instruksi pemulihan password."
     : isRegister
-      ? "Isi data singkat untuk mulai berbelanja."
+      ? "Gunakan email aktif dan password yang kuat untuk menjaga keamanan akun."
       : "Masuk dengan email dan password akun PasarKita untuk melanjutkan aktivitas belanja.";
   return `
     <section class="auth-page">
@@ -64,13 +64,28 @@ export function render({ path }) {
           ${isForgotPassword ? "" : `<label>
             <span>Password</span>
             <div class="password-field">
-              <input name="password" type="password" minlength="6" required placeholder="Minimal 6 karakter" />
+              <input name="password" type="password" minlength="${isRegister ? "8" : "6"}" required placeholder="${isRegister ? "Minimal 8 karakter" : "Minimal 6 karakter"}" />
               <button class="password-toggle" type="button" aria-label="Tampilkan password" aria-pressed="false">
                 <span data-lucide="eye"></span>
               </button>
             </div>
+            ${isRegister ? `<ul class="password-rules" aria-label="Syarat password">
+              <li data-password-rule="length"><span data-lucide="circle"></span>Minimal 8 karakter</li>
+              <li data-password-rule="case"><span data-lucide="circle"></span>Mengandung huruf besar dan huruf kecil</li>
+              <li data-password-rule="number-symbol"><span data-lucide="circle"></span>Mengandung angka dan simbol</li>
+            </ul>` : ""}
             <small class="form-error" data-error-for="password"></small>
           </label>`}
+          ${isRegister ? `<label>
+            <span>Konfirmasi password</span>
+            <div class="password-field">
+              <input name="confirmPassword" type="password" autocomplete="new-password" required placeholder="Ulangi password" />
+              <button class="password-toggle" type="button" aria-label="Tampilkan password" aria-pressed="false">
+                <span data-lucide="eye"></span>
+              </button>
+            </div>
+            <small class="form-error" data-error-for="confirmPassword"></small>
+          </label>` : ""}
           ${isRegister ? `<label><span>Nomor telepon</span><input name="phone" autocomplete="tel" required placeholder="08xxxxxxxxxx" /><small class="form-error" data-error-for="phone"></small></label>` : ""}
           ${isForgotPassword ? "" : isRegister ? "" : `<div class="auth-helper"><label><input type="checkbox" checked /> Ingat saya</label><a href="#/forgot-password">Lupa password?</a></div>`}
           <button class="btn btn-primary full" type="submit">${isForgotPassword ? "Kirim Instruksi Reset" : isRegister ? "Daftar Sekarang" : "Masuk"}</button>
@@ -115,22 +130,49 @@ export function afterRender({ path, navigate }) {
       return;
     }
     try {
-      const user = isRegister ? await registerUser(result.data) : await loginUser(result.data);
+      const payload = isRegister
+        ? (({ confirmPassword, ...registerPayload }) => registerPayload)(result.data)
+        : result.data;
+      const user = isRegister ? await registerUser(payload) : await loginUser(payload);
       toast(isRegister ? `Akun ${escapeHtml(user.name)} berhasil dibuat.` : `Selamat datang kembali, ${escapeHtml(user.name)}.`);
       navigate(consumePendingRoute());
     } catch (error) {
       toast(error.message, "error");
     }
   });
-  document.querySelector(".password-toggle")?.addEventListener("click", (event) => {
-    const button = event.currentTarget;
-    const input = button.closest(".password-field")?.querySelector("input");
-    if (!input) return;
-    const isVisible = input.type === "text";
-    input.type = isVisible ? "password" : "text";
-    button.setAttribute("aria-label", isVisible ? "Tampilkan password" : "Sembunyikan password");
-    button.setAttribute("aria-pressed", String(!isVisible));
-    button.innerHTML = `<span data-lucide="${isVisible ? "eye" : "eye-off"}"></span>`;
-    renderIcons(button);
+  document.querySelectorAll(".password-toggle").forEach((toggle) => {
+    toggle.addEventListener("click", (event) => {
+      const button = event.currentTarget;
+      const input = button.closest(".password-field")?.querySelector("input");
+      if (!input) return;
+      const isVisible = input.type === "text";
+      input.type = isVisible ? "password" : "text";
+      button.setAttribute("aria-label", isVisible ? "Tampilkan password" : "Sembunyikan password");
+      button.setAttribute("aria-pressed", String(!isVisible));
+      button.innerHTML = `<span data-lucide="${isVisible ? "eye" : "eye-off"}"></span>`;
+      renderIcons(button);
+    });
   });
+  const passwordInput = form?.elements.password;
+  const passwordRules = [...document.querySelectorAll("[data-password-rule]")];
+  const updatePasswordRules = () => {
+    const value = passwordInput?.value || "";
+    const checks = {
+      length: value.length >= 8,
+      case: /[a-z]/.test(value) && /[A-Z]/.test(value),
+      "number-symbol": /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value),
+    };
+    passwordRules.forEach((rule) => {
+      const isValid = checks[rule.dataset.passwordRule];
+      rule.classList.toggle("is-valid", isValid);
+      rule.classList.toggle("is-pending", !isValid);
+      const icon = rule.querySelector("[data-lucide]");
+      if (icon) icon.dataset.lucide = isValid ? "check-circle-2" : "circle";
+    });
+    if (passwordRules.length) renderIcons(document.querySelector(".password-rules"));
+  };
+  if (isRegister && passwordInput) {
+    updatePasswordRules();
+    passwordInput.addEventListener("input", updatePasswordRules);
+  }
 }

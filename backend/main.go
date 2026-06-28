@@ -32,10 +32,6 @@ func main() {
 		log.Fatalf("database migration failed: %v", err)
 	}
 
-	if err := database.SeedDatabase(db); err != nil {
-		log.Fatalf("database seeding failed: %v", err)
-	}
-
 	app := fiber.New(fiber.Config{
 		AppName:      "Marketplace PasarKita API",
 		ErrorHandler: middleware.ErrorHandler,

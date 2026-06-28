@@ -109,6 +109,12 @@ export function initRouter(roots) {
     if (addButton) {
       event.preventDefault();
       event.stopPropagation();
+      if (!isLoggedIn()) {
+        setPendingRoute((location.hash || "#/products").slice(1) || "/products");
+        toast("Login terlebih dahulu untuk menambahkan produk ke keranjang.", "info");
+        navigate("/login");
+        return;
+      }
       try {
         await addToCart(addButton.dataset.addCart);
         toast("Produk berhasil ditambahkan ke keranjang.");
