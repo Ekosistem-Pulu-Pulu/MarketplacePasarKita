@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>User Journey Map - PasarKita Marketplace</title>
+<style>
+  :root {
+    --bg: #f5f7f6;
+    --surface: #ffffff;
+    --ink: #0f1f1a;
+    --ink-soft: #4a5b56;
+    --ink-muted: #8497a0;
+    --line: #e2ebe6;
+    --primary: #0f7a5a;
+    --primary-soft: #e6f5ef;
+    --primary-dark: #08553d;
+    --accent: #e07a37;
+    --accent-soft: #fcefe2;
+    --success: #1aa56a;
+    --success-soft: #e6f7ee;
+    --warning: #c79716;
+    --warning-soft: #fbf3da;
+    --danger: #c34238;
+    --danger-soft: #fae6e3;
+    --info: #2b6fa3;
+    --info-soft: #e0edf7;
+    --neutral: #5a6b71;
+    --neutral-soft: #eef2f3;
+    --shadow-sm: 0 1px 2px rgba(15, 31, 26, .04), 0 1px 1px rgba(15, 31, 26, .03);
+    --shadow-md: 0 4px 12px rgba(15, 31, 26, .06), 0 2px 4px rgba(15, 31, 26, .04);
+    --shadow-lg: 0 12px 40px rgba(15, 31, 26, .10);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    padding: 32px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* === Header === */
+  header.hero {
+    margin-bottom: 40px;
+    padding: 32px 36px;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    border-radius: var(--radius-lg);
+    color: white;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+  }
+  header.hero::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 60%);
+    pointer-events: none;
+  }
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.24);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .brand-mark svg { width: 16px; height: 16px; }
+  header.hero h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin-bottom: 8px;
+  }
+  header.hero p {
+    max-width: 720px;
+    font-size: 15px;
+    color: rgba(255,255,255,.92);
+  }
+  header.hero .note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: rgba(255,255,255,.78);
+    font-style: italic;
+  }
+
+  /* === Journey Section === */
+  .journey {
+    margin-bottom: 56px;
+  }
+  .journey-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .journey-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .journey-title .badge {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .journey-title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+  .journey-roles {
+    font-size: 14px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .journey-roles strong { color: var(--ink); }
+
+  /* === Lane Container === */
+  .lanes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .lane {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .lane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .lane-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lane-title .icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .lane-title .icon svg { width: 16px; height: 16px; }
+  .lane-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .lane-tag.buyer { background: var(--success-soft); color: var(--success); }
+  .lane-tag.seller { background: var(--accent-soft); color: var(--accent); }
+  .lane-tag.process { background: var(--info-soft); color: var(--info); }
+
+  /* === Steps === */
+  .steps {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .step {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--neutral);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    transition: all .15s ease;
+    cursor: default;
+  }
+  .step:hover {
+    border-color: var(--line);
+  }
+  .step.is-success { border-left-color: var(--success); }
+  .step.is-warning { border-left-color: var(--warning); }
+  .step.is-danger  { border-left-color: var(--danger); }
+  .step.is-info    { border-left-color: var(--info); }
+  .step.is-primary { border-left-color: var(--primary); }
+  .step.is-accent  { border-left-color: var(--accent); }
+  .step.is-neutral { border-left-color: var(--neutral); }
+
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--neutral-soft);
+    color: var(--ink-soft);
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+  }
+  .step.is-success .step-num { background: var(--success-soft); color: var(--success); }
+  .step.is-warning .step-num { background: var(--warning-soft); color: var(--warning); }
+  .step.is-danger  .step-num { background: var(--danger-soft);  color: var(--danger); }
+  .step.is-info    .step-num { background: var(--info-soft);    color: var(--info); }
+  .step.is-primary .step-num { background: var(--primary-soft); color: var(--primary); }
+  .step.is-accent  .step-num { background: var(--accent-soft);  color: var(--accent); }
+
+  .step-body { flex: 1; }
+  .step-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+  .step-desc {
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+  .step-status {
+    align-self: flex-start;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--neutral-soft);
+    color: var(--neutral);
+    flex-shrink: 0;
+  }
+  .step.is-success .step-status { background: var(--success-soft); color: var(--success); }
+  .step.is-warning .step-status { background: var(--warning-soft); color: var(--warning); }
+  .step.is-danger  .step-status { background: var(--danger-soft);  color: var(--danger); }
+  .step.is-info    .step-status { background: var(--info-soft);    color: var(--info); }
+  .step.is-primary .step-status { background: var(--primary-soft); color: var(--primary); }
+  .step.is-accent  .step-status { background: var(--accent-soft);  color: var(--accent); }
+
+  /* === Phase Connectors (Horizontal lane bands) === */
+  .phase-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 0 0 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 10px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .phase {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--ink-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--neutral-soft);
+  }
+  .phase.is-active {
+    color: white;
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(15, 122, 90, .25);
+  }
+  .phase-arrow {
+    color: var(--ink-muted);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* === Branch (forking/joining) === */
+  .branch {
+    border: 1px dashed var(--info);
+    background: var(--info-soft);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-top: 12px;
+  }
+  .branch-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--info);
+    margin-bottom: 6px;
+  }
+  .branch-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .branch-list li {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .branch-list li::before {
+    content: "→";
+    color: var(--info);
+    font-weight: 700;
+  }
+
+  /* === Pain points & delights === */
+  .insight {
+    border-top: 1px solid var(--line);
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+  .insight-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 11.5px;
+    align-items: flex-start;
+  }
+  .insight-row:last-child { margin-bottom: 0; }
+  .insight-row .icn {
+    flex-shrink: 0;
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    margin-top: 2px;
+  }
+  .insight-row .icn.pain { background: var(--danger); }
+  .insight-row .icn.gain { background: var(--success); }
+  .insight-row .icn.touch { background: var(--info); }
+
+  /* === Legend === */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .legend-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--ink-soft);
+    margin-right: 4px;
+    align-self: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--ink);
+  }
+  .legend-swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+  }
+  .legend-swatch.success { background: var(--success); }
+  .legend-swatch.warning { background: var(--warning); }
+  .legend-swatch.danger  { background: var(--danger); }
+  .legend-swatch.info    { background: var(--info); }
+  .legend-swatch.primary { background: var(--primary); }
+  .legend-swatch.accent  { background: var(--accent); }
+  .legend-swatch.neutral { background: var(--neutral); }
+
+  /* === Footer === */
+  footer.foot {
+    margin-top: 48px;
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-muted);
+    border-top: 1px solid var(--line);
+  }
+
+  /* === Responsive === */
+  @media (max-width: 1100px) {
+    .lanes { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    body { padding: 16px 12px 60px; }
+    header.hero { padding: 22px 20px; border-radius: var(--radius-md); }
+    header.hero h1 { font-size: 22px; }
+    .lane { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== HEADER ===== -->
+  <header class="hero">
+    <div class="brand-mark">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18l-2 13H5L3 6Z"/><path d="M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+      PasarKita · User Journey Map
+    </div>
+    <h1>User Journey Map</h1>
+    <p>Visualisasi alur peran pengguna marketplace berdasarkan implementasi Bagian 6 — dokumentasi spesifikasi PasarKita. Setiap journey memetakan fase, sentuhan/channel, status, dan cabang keputusan yang tersedia di source code.</p>
+    <p class="note">Catatan: langkah visual pada peta ini merepresentasikan abstraksi alur. Detail mikrokopis UI (banner profil, auto-refresh, dsb.) yang tidak ditemukan secara eksplisit pada source code ditandai dengan istilah "ilustrasi alur" dan bukan jaminan implementasi.</p>
+  </header>
+
+  <!-- ===== JOURNEY 1 ===== -->
+  <section class="journey" id="journey-1">
+    <div class="journey-header">
+      <div class="journey-title">
+        <span class="badge">Journey 01</span>
+        <h2>Guest → Buyer</h2>
+      </div>
+      <div class="journey-roles">Role: <strong>Guest</strong> → <strong>Buyer (authenticated)</strong></div>
+    </div>
+
+    <!-- Phase flow indicator -->
+    <div class="phase-flow">
+      <span class="phase is-active">Discovery</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase is-active">Browse</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase is-active">Cart</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Auth</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Checkout</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Payment</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Fulfillment</span>
+    </div>
+
+    <div class="lanes">
+      <!-- LANE 1: Discovery & Browse (Guest) -->
+      <div class="lane">
+        <div class="lane-head">
+          <div class="lane-title">
+            <span class="icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            Discovery & Browse
+          </div>
+          <span class="lane-tag buyer">Guest</span>
+        </div>
+        <ul class="steps">
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">1</span>
+              <div class="step-body">
+                <div class="step-title">Buka Landing</div>
+                <div class="step-desc">Mengakses beranda, melihat banner promo, kategori, dan produk pilihan.</div>
+              </div>
+              <span class="step-status">Public</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Channel: Home (#/)</span></div>
+            </div>
+          </li>
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">2</span>
+              <div class="step-body">
+                <div class="step-title">Cari / Pilih Kategori</div>
+                <div class="step-desc">Mengetik kata kunci di search bar atau memilih salah satu dari 8 kategori.</div>
+              </div>
+              <span class="step-status">Public</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Channel: Search & Category</span></div>
+            </div>
+          </li>
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">3</span>
+              <div class="step-body">
+                <div class="step-title">Telusuri Listing</div>
+                <div class="step-desc">Membuka daftar produk aktif, melihat product card (nama, harga, rating, terjual).</div>
+              </div>
+              <span class="step-status">Public</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Filter berdasarkan kategori, harga, rating</span></div>
+            </div>
+          </li>
+          <li class="step is-primary">
+            <div class="step-row">
+              <span class="step-num">4</span>
+              <div class="step-body">
+                <div class="step-title">Buka Detail Produk</div>
+                <div class="step-desc">Membaca deskripsi, galeri, harga, stok, rating, dan garansi retur 7 hari.</div>
+              </div>
+              <span class="step-status">Public</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Menampilkan informasi toko & ulasan</span></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- LANE 2: Cart (Guest wants to buy → must auth) -->
+      <div class="lane">
+        <div class="lane-head">
+          <div class="lane-title">
+            <span class="icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l2.7 11.4a2 2 0 0 0 2 1.6h7.3a2 2 0 0 0 2-1.6L21 7H6"/></svg>
+            </span>
+            Keranjang & Autentikasi
+          </div>
+          <span class="lane-tag process">Auth Gate</span>
+        </div>
+        <ul class="steps">
+          <li class="step is-accent">
+            <div class="step-row">
+              <span class="step-num">5</span>
+              <div class="step-body">
+                <div class="step-title">Tambah ke Keranjang</div>
+                <div class="step-desc">Klik "Tambah ke Keranjang" dari ProductCard atau detail. Item masuk ke localStorage / API.</div>
+              </div>
+              <span class="step-status">Trigger</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Sync cart guest ↔ user saat login</span></div>
+            </div>
+          </li>
+          <li class="step is-warning">
+            <div class="step-row">
+              <span class="step-num">6</span>
+              <div class="step-body">
+                <div class="step-title">Login atau Register</div>
+                <div class="step-desc">Checkout memicu login modal. User memasukkan email + password atau membuat akun baru.</div>
+              </div>
+              <span class="step-status">Required</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn pain"></span><span>Validasi: 8+ karakter, ada huruf besar, kecil, angka, simbol</span></div>
+              <div class="insight-row"><span class="icn touch"></span><span>Channel: Login / Register / Forgot Password</span></div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="branch">
+          <div class="branch-title">Cabang Otentikasi</div>
+          <ul class="branch-list">
+            <li>Login Berhasil → JWT token tersimpan, kembali ke cart</li>
+            <li>Akun Baru → Validasi register (email unik, password strength)</li>
+            <li>Lupa Password → Forgot Password flow</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- LANE 3: Checkout → Payment → Fulfillment -->
+      <div class="lane">
+        <div class="lane-head">
+          <div class="lane-title">
+            <span class="icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            </span>
+            Checkout &amp; Fulfillment
+          </div>
+          <span class="lane-tag buyer">Buyer</span>
+        </div>
+        <ul class="steps">
+          <li class="step is-primary">
+            <div class="step-row">
+              <span class="step-num">7</span>
+              <div class="step-body">
+                <div class="step-title">Tinjau Keranjang</div>
+                <div class="step-desc">Memperbarui qty, menghapus item, menerapkan voucher (PERCENT/AMOUNT).</div>
+              </div>
+              <span class="step-status">Buyer</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Voucher valid + diskon otomatis subtotal ≥ ambang</span></div>
+            </div>
+          </li>
+          <li class="step is-primary">
+            <div class="step-row">
+              <span class="step-num">8</span>
+              <div class="step-body">
+                <div class="step-title">Checkout</div>
+                <div class="step-desc">Sistem menghitung subtotal + marketplace fee (2%) + ongkir (kosong) + total.</div>
+              </div>
+              <span class="step-status">Calculated</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Validasi qty ≤ stok, voucher aktif</span></div>
+            </div>
+          </li>
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">9</span>
+              <div class="step-body">
+                <div class="step-title">Pilih Metode Pembayaran</div>
+                <div class="step-desc">Snap pembayaran atau Virtual Account. Sistem mengirim payment request.</div>
+              </div>
+              <span class="step-status">Pending</span>
+            </div>              <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Channel: Payment (#/payment/:id)</span></div>
+            </div>
+          </li>
+          <li class="step is-warning">
+            <div class="step-row">
+              <span class="step-num">10</span>
+              <div class="step-body">
+                <div class="step-title">Status Order: Pending → Paid</div>
+                <div class="step-desc">Order dibuat dengan status PENDING_PAYMENT, lalu menunggu hasil SmartBank.</div>
+              </div>
+              <span class="step-status">Pending</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn pain"></span><span>External: Tergantung callback SmartBank</span></div>
+            </div>
+          </li>
+          <li class="step is-success">
+            <div class="step-row">
+              <span class="step-num">11</span>
+              <div class="step-body">
+                <div class="step-title">Processing → Shipped → Delivered</div>
+                <div class="step-desc">Seller memproses, mengirim barang. User melihat status progresif di OrderStepper.</div>
+              </div>
+              <span class="step-status">Active</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Auto-refresh status order setelah pembayaran sukses</span></div>
+            </div>
+          </li>
+          <li class="step is-success">
+            <div class="step-row">
+              <span class="step-num">12</span>
+              <div class="step-body">
+                <div class="step-title">Selesaikan & Review</div>
+                <div class="step-desc">Pesanan diterima (Completed). Opsional: tinggalkan review & rating produk.</div>
+              </div>
+              <span class="step-status">Done</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Garansi retur 7 hari aktif sejak diterima</span></div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="branch">
+          <div class="branch-title">Outcome Pembayaran (system-driven)</div>
+          <ul class="branch-list">
+            <li>Pembayaran Gagal → Order tetap tersimpan, beri retry</li>
+            <li>Stok Habis Saat Checkout → Tampilkan error validasi</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend for Journey 1 -->
+    <div class="legend">
+      <span class="legend-title">Status warna:</span>
+      <span class="legend-item"><span class="legend-swatch info"></span>Discovery / Eksplorasi</span>
+      <span class="legend-item"><span class="legend-swatch accent"></span>Trigger / Aksi</span>
+      <span class="legend-item"><span class="legend-swatch warning"></span>Validasi / Pending</span>
+      <span class="legend-item"><span class="legend-swatch primary"></span>Authenticated Step</span>
+      <span class="legend-item"><span class="legend-swatch success"></span>Berhasil / Selesai</span>
+      <span class="legend-item"><span class="legend-swatch danger"></span>Validasi Gagal</span>
+    </div>
+  </section>
+
+  <!-- ===== JOURNEY 2 ===== -->
+  <section class="journey" id="journey-2">
+    <div class="journey-header">
+      <div class="journey-title">
+        <span class="badge">Journey 02</span>
+        <h2>Non-Seller → Seller Application → Seller</h2>
+      </div>
+      <div class="journey-roles">Role: <strong>Buyer</strong> → <strong>Applicant</strong> → <strong>Active Seller</strong></div>
+    </div>
+
+    <!-- Phase flow indicator -->
+    <div class="phase-flow">
+      <span class="phase is-active">Profile</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase is-active">Application</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Review</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Approval</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Onboarding</span>
+      <span class="phase-arrow">›</span>
+      <span class="phase">Active Selling</span>
+    </div>
+
+    <div class="lanes">
+      <!-- LANE 1: Profile & Application -->
+      <div class="lane">
+        <div class="lane-head">
+          <div class="lane-title">
+            <span class="icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            </span>
+            Profil &amp; Aplikasi
+          </div>
+          <span class="lane-tag buyer">Buyer</span>
+        </div>
+        <ul class="steps">
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">1</span>
+              <div class="step-body">
+                <div class="step-title">Buka Halaman Profil</div>
+                <div class="step-desc">User login lalu navigasi ke menu Profile. Melihat identitas, voucher, dan status keanggotaan.</div>
+              </div>
+              <span class="step-status">Buyer</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Channel: Profile (#/profile)</span></div>
+            </div>
+          </li>
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">2</span>
+              <div class="step-body">
+                <div class="step-title">Pilih Menu "Daftar Jadi Penjual"</div>
+                <div class="step-desc">Dari profil, klik opsi Ajukan Aplikasi Seller. Sistem memuat form aplikasi.</div>
+              </div>
+              <span class="step-status">Buyer</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Motivasi: menambah penghasilan, memperluas jangkauan</span></div>
+            </div>
+          </li>
+          <li class="step is-accent">
+            <div class="step-row">
+              <span class="step-num">3</span>
+              <div class="step-body">
+                <div class="step-title">Isi Form Aplikasi</div>
+                <div class="step-desc">Nama toko, deskripsi, kategori usaha, informasi pemilik, kontak, alamat.</div>
+              </div>
+              <span class="step-status">Form</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Validasi real-time dengan Zod</span></div>
+            </div>
+          </li>
+          <li class="step is-warning">
+            <div class="step-row">
+              <span class="step-num">4</span>
+              <div class="step-body">
+                <div class="step-title">Validasi &amp; Submit</div>
+                <div class="step-desc">Sistem mengecek kelengkapan field dan mengirim aplikasi ke tim internal marketplace.</div>
+              </div>
+              <span class="step-status">Submit</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn pain"></span><span>Kalau ada field kosong atau salah format → tampilkan error</span></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- LANE 2: Application Review -->
+      <div class="lane">
+        <div class="lane-head">
+          <div class="lane-title">
+            <span class="icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            Proses Review
+          </div>
+          <span class="lane-tag process">Applicant</span>
+        </div>
+        <ul class="steps">
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">5</span>
+              <div class="step-body">
+                <div class="step-title">Aplikasi Terkirim (Pending)</div>
+                <div class="step-desc">Status berubah menjadi "Diajukan" / Pending. User melihat banner info di profil.</div>
+              </div>
+              <span class="step-status">Pending</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>User mendapat kepastian aplikasi sudah masuk antrian</span></div>
+            </div>
+          </li>
+          <li class="step is-neutral">
+            <div class="step-row">
+              <span class="step-num">6</span>
+              <div class="step-body">
+                <div class="step-title">Verifikasi Tim Internal</div>
+                <div class="step-desc">Catalog admin / customer support mengecek data toko, kontak, dan kelengkapan dokumen.</div>
+              </div>
+              <span class="step-status">In-Review</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Dilakukan oleh peran catalog_admin dan customer_support</span></div>
+            </div>
+          </li>
+          <li class="step is-primary">
+            <div class="step-row">
+              <span class="step-num">7</span>
+              <div class="step-body">
+                <div class="step-title">Keputusan Review</div>
+                <div class="step-desc">Tim memutuskan menyetujui (approve) atau menolak aplikasi dengan alasan.</div>
+              </div>
+              <span class="step-status">Decision</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Dilakukan oleh catalog_admin</span></div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="branch">
+          <div class="branch-title">Cabang Keputusan Review</div>
+          <ul class="branch-list">
+            <li><strong>Disetujui</strong> → status berubah menjadi ACTIVE</li>
+            <li><strong>Ditolak</strong> → tampilkan alasan, user boleh mengajukan ulang</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- LANE 3: Active Seller -->
+      <div class="lane">
+        <div class="lane-head">
+          <div class="lane-title">
+            <span class="icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 12 2l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="M9 22V12h6v10"/></svg>
+            </span>
+            Aktif sebagai Penjual
+          </div>
+          <span class="lane-tag seller">Seller</span>
+        </div>
+        <ul class="steps">
+          <li class="step is-success">
+            <div class="step-row">
+              <span class="step-num">8</span>
+              <div class="step-body">
+                <div class="step-title">Aktivasi Seller</div>
+                <div class="step-desc">Role user berubah menjadi seller. Menu seller dashboard muncul otomatis.</div>
+              </div>
+              <span class="step-status">Active</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Akses Seller Dashboard terbuka</span></div>
+            </div>
+          </li>
+          <li class="step is-primary">
+            <div class="step-row">
+              <span class="step-num">9</span>
+              <div class="step-body">
+                <div class="step-title">Kelola Produk (CRUD)</div>
+                <div class="step-desc">Tambah, ubah, nonaktifkan produk dengan SellerTable sebagai daftar transaksi.</div>
+              </div>
+              <span class="step-status">Owned</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Seller tidak boleh mengubah produk seller lain</span></div>
+            </div>
+          </li>
+          <li class="step is-primary">
+            <div class="step-row">
+              <span class="step-num">10</span>
+              <div class="step-body">
+                <div class="step-title">Lihat Order Masuk</div>
+                <div class="step-desc">Order baru tampil di SellerDashboard dengan status pembayaran dan info pembeli.</div>
+              </div>
+              <span class="step-status">Order</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn touch"></span><span>Channel: Seller Dashboard Stats &amp; Seller Table</span></div>
+            </div>
+          </li>
+          <li class="step is-info">
+            <div class="step-row">
+              <span class="step-num">11</span>
+              <div class="step-body">
+                <div class="step-title">Proses &amp; Kirim Pesanan</div>
+                <div class="step-desc">Order berpindah dari PAID → PROCESSING → SHIPPED. Sistem memicu pengiriman logistik.</div>
+              </div>
+              <span class="step-status">Process</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>Update status order = audit log tercatat</span></div>
+            </div>
+          </li>
+          <li class="step is-success">
+            <div class="step-row">
+              <span class="step-num">12</span>
+              <div class="step-body">
+                <div class="step-title">Selesaikan &amp; Terima Pembayaran</div>
+                <div class="step-desc">Setelah pesanan diterima, dana diteruskan dari SmartBank ke seller sesuai aturan fee 2%.</div>
+              </div>
+              <span class="step-status">Settled</span>
+            </div>
+            <div class="insight">
+              <div class="insight-row"><span class="icn gain"></span><span>SellerStats menampilkan metrik penjualan</span></div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="branch">
+          <div class="branch-title">Catatan Operasional</div>
+          <ul class="branch-list">
+            <li>Stok habis → produk otomatis nonaktif di browse publik</li>
+            <li>Order dibatalkan → marketplace fee tidak dipotong</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend for Journey 2 -->
+    <div class="legend">
+      <span class="legend-title">Status warna:</span>
+      <span class="legend-item"><span class="legend-swatch info"></span>Discovery / Keputusan</span>
+      <span class="legend-item"><span class="legend-swatch accent"></span>Form / Aksi</span>
+      <span class="legend-item"><span class="legend-swatch warning"></span>Verifikasi / Pending</span>
+      <span class="legend-item"><span class="legend-swatch primary"></span>Seller Aktif</span>
+      <span class="legend-item"><span class="legend-swatch neutral"></span>Review Internal</span>
+      <span class="legend-item"><span class="legend-swatch success"></span>Berhasil / Selesai</span>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Visual ini merepresentasikan alur implementasi PasarKita berdasarkan source code di folder <code>backend/</code> dan <code>frontend-new/src/</code>. Status warna dan langkah mengikuti kontrak endpoint dan aksi UI yang terdokumentasi pada spesifikasi Bagian 6 (Alur Bisnis).
+  </footer>
+
+</div>
+</body>
+</html>
