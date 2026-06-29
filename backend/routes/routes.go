@@ -91,15 +91,33 @@ func Register(app *fiber.App, cfg config.Config, authService *services.AuthServi
 	guestGroup.Get("/payment-status/:id", guest.GetPaymentStatus)
 
 	protected := app.Group("/marketplace", authRequired, middleware.RequestLogger(auditRepo))
+
+	// Cart routes terbuka untuk semua role login (buyer, seller, catalog_admin,
+	// platform_admin). Tujuan: admin & seller bisa mengelola keranjang pribadi
+	// untuk testing tanpa 403, sesuai diskusi iterasi Pasarkita.
+	// RoleTechMaintainer sengaja TIDAK termasuk di sini karena mereka adalah
+	// operator sistem, bukan customer marketplace.
+	cartCapable := protected.Group("", middleware.RequireRoles(
+		models.RoleBuyer,
+		models.RoleSeller,
+		models.RoleCatalogAdmin,
+		models.RolePlatformAdmin,
+	))
+	cartCapable.Get("/cart", platform.Cart)
+	cartCapable.Post("/cart", platform.AddCart)
+	cartCapable.Post("/cart/sync", platform.SyncCart)
+	cartCapable.Patch("/cart/:product_id", platform.UpdateCart)
+	cartCapable.Delete("/cart/:product_id", platform.RemoveCart)
+
+	// Routes finansial, status order, dan komit payment tetap hanya-buyer.
+	// Setiap endpoint di bawah ini menyentuh saldo, payment, atau status
+	// pesanan — diharapkan tidak dipakai oleh admin/seller dalam alur
+	// normal mereka. Admin/seller yang ingin menguji flow ini cukup login
+	// dengan akun buyer atau minta tim untuk menyediakan staging user.
 	buyer := protected.Group("", middleware.RequireRoles(models.RoleBuyer))
 	buyer.Post("/checkout", marketplace.Checkout)
 	buyer.Post("/integrasi_pembayaran", marketplace.IntegratePayment)
 	buyer.Get("/status_order", marketplace.GetOrderStatus)
-	buyer.Get("/cart", platform.Cart)
-	buyer.Post("/cart", platform.AddCart)
-	buyer.Post("/cart/sync", platform.SyncCart)
-	buyer.Patch("/cart/:product_id", platform.UpdateCart)
-	buyer.Delete("/cart/:product_id", platform.RemoveCart)
 	buyer.Post("/checkout/calculate", platform.CalculateCheckout)
 	buyer.Post("/cart/checkout", platform.CheckoutCart)
 	buyer.Get("/orders", platform.ListOrders)

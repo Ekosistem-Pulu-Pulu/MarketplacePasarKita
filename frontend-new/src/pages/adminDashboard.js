@@ -91,7 +91,7 @@ function overviewCards(user) {
     </div>
     <article class="seller-panel">
       <div class="seller-panel-heading"><div><h2>Ringkasan ${escapeHtml(accountTypeLabel(user.role))}</h2><p>Informasi ringkas dan akses cepat untuk peran operasionalmu.</p></div></div>
-      <div class="empty-mini" style="background: #f7f9ff; border-color: #d8e2f7;">
+      <div class="empty-mini empty-mini-info">
         <div class="empty-mini-icon"><span data-lucide="info"></span></div>
         <div class="empty-mini-body">
           <h3>Akses dashboard</h3>
@@ -148,7 +148,7 @@ function productsPlaceholder() {
   return `
     <article class="seller-panel">
       <div class="seller-panel-heading"><div><h2>Kelola Produk</h2><p>Modul manajemen katalog produk.</p></div></div>
-      <div class="empty-mini" style="background: #f7f9ff; border-color: #d8e2f7;">
+      <div class="empty-mini empty-mini-info">
         <div class="empty-mini-icon"><span data-lucide="package"></span></div>
         <div class="empty-mini-body">
           <h3>Modul katalog dalam pengembangan</h3>

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,10 +27,21 @@ func Authenticate(auth *services.AuthService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		fields := strings.Fields(ctx.Get("Authorization"))
 		if len(fields) != 2 || !strings.EqualFold(fields[0], "Bearer") {
+			slog.Warn("auth_failed",
+				slog.String("reason", "missing_or_invalid_authorization_header"),
+				slog.String("path", ctx.Path()),
+				slog.String("ip", ctx.IP()),
+			)
 			return fiber.NewError(fiber.StatusUnauthorized, "autentikasi diperlukan")
 		}
 		claims, err := auth.ValidateToken(fields[1])
 		if err != nil {
+			slog.Warn("auth_failed",
+				slog.String("reason", "invalid_or_expired_token"),
+				slog.String("path", ctx.Path()),
+				slog.String("ip", ctx.IP()),
+				slog.String("error", err.Error()),
+			)
 			return fiber.NewError(fiber.StatusUnauthorized, "access token tidak valid atau kedaluwarsa")
 		}
 		ctx.Locals(ClaimsLocal, claims)
@@ -48,6 +60,16 @@ func RequireRoles(roles ...string) fiber.Handler {
 			return fiber.NewError(fiber.StatusUnauthorized, "autentikasi diperlukan")
 		}
 		if _, ok := allowed[claims.Role]; !ok {
+			// Catat attempt 403 dengan klaim yang disajikan agar admin bisa
+			// mengaudit lonjakan akses ke endpoint role-restricted.
+			slog.Warn("forbidden_access",
+				slog.String("user_id", claims.UserID),
+				slog.String("role", claims.Role),
+				slog.String("path", ctx.Path()),
+				slog.String("method", ctx.Method()),
+				slog.Any("required_roles", roles),
+				slog.String("ip", ctx.IP()),
+			)
 			return fiber.NewError(fiber.StatusForbidden, "role tidak memiliki akses ke endpoint ini")
 		}
 		return ctx.Next()

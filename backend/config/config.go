@@ -90,6 +90,91 @@ func Load() Config {
 	}
 }
 
+// ExpandedCORSOrigins memecah CORSAllowedOrigins (comma-separated) menjadi
+// bentuk yang siap dipakai Fiber, sambil menambahkan pasangan loopback yang
+// hilang. Aturan ekspansi:
+//
+//   - Hanya http://localhost:<port> & http://127.0.0.1:<port> yang saling
+//     dipasangkan. Tidak menyentuh https://localhost atau origin lain.
+//   - Protokol & port HARUS persis sama; tidak ada fuzzy port atau cross-protocol.
+//   - Port divalidasi sebagai integer 1–65535. Entry malformed (port non-numeric
+//     atau kosong) di-skip total — tidak disisipkan ke output.
+//   - Hasil dideduplikasi dengan urutan konsisten (pengembangan user
+//     tertulis lebih dulu, pasangan otomatis muncul setelahnya).
+//
+// Ekspansi ini murni untuk kenyamanan dev lokal (Vite default mengekspos
+// 127.0.0.1:5173) tanpa mengurangi validasi eksplisit-origin yang dilakukan
+// `Validate()` — string kosong & wildcard `*` tetap ditolak.
+func (c Config) ExpandedCORSOrigins() string {
+	entries := strings.Split(c.CORSAllowedOrigins, ",")
+	seen := make(map[string]struct{}, len(entries)*2)
+	out := make([]string, 0, len(entries)*2)
+
+	const (
+		localhostPrefix = "http://localhost:"
+		loopbackPrefix  = "http://127.0.0.1:"
+	)
+
+	appendUnique := func(origin string) {
+		o := strings.TrimSpace(origin)
+		if o == "" {
+			return
+		}
+		if _, ok := seen[o]; ok {
+			return
+		}
+		seen[o] = struct{}{}
+		out = append(out, o)
+	}
+
+	extractPort := func(trimmed, prefix string) (string, bool) {
+		// Asumsi: trimmed sudah match prefix persis (case-insensitive match
+		// dilakukan pemanggil). Slicing dari trimmed, bukan raw, supaya
+		// ruang kosong setelah koma CSV-split tidak merusak offset byte.
+		port := strings.TrimSpace(trimmed[len(prefix):])
+		if port == "" {
+			return "", false
+		}
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return "", false
+		}
+		return port, true
+	}
+
+	for _, raw := range entries {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		lower := strings.ToLower(trimmed)
+
+		switch {
+		case strings.HasPrefix(lower, localhostPrefix):
+			// Port valid: tuliskan entry asli dulu, lalu pasangan otomatis dengan
+			// nilai port yang sudah tervalidasi (bukan hasil string-slice ulang),
+			// agar byte-identik untuk tujuan dedup map.
+			if port, ok := extractPort(trimmed, localhostPrefix); ok {
+				appendUnique(trimmed)
+				appendUnique("http://127.0.0.1:" + port)
+			}
+
+		case strings.HasPrefix(lower, loopbackPrefix):
+			if port, ok := extractPort(trimmed, loopbackPrefix); ok {
+				appendUnique(trimmed)
+				appendUnique("http://localhost:" + port)
+			}
+
+		default:
+			// Origin non-loopback (https, domain lain, IPv6, dll) langsung disisipkan
+			// apa adanya. Validate() tetap menjadi gatekeeper untuk string kosong
+			// dan wildcard.
+			appendUnique(trimmed)
+		}
+	}
+	return strings.Join(out, ",")
+}
+
 func (c Config) Validate() error {
 	if len(c.JWTSecret) < 32 {
 		return fmt.Errorf("JWT_SECRET wajib diisi minimal 32 karakter")

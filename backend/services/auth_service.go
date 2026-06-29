@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -86,8 +87,21 @@ func (s *AuthService) AccountUsers() ([]AccountUser, error) {
 func (s *AuthService) Login(input LoginInput) (*AuthResult, error) {
 	user, err := s.users.FindByEmail(input.Email)
 	if err != nil || user.Status != "ACTIVE" || !models.CheckPassword(user.PasswordHash, input.Password) {
+		// reason membantu diagnosa: "user_not_found", "user_inactive",
+		// "password_mismatch". Field email dinormalisasi lowercase agar
+		// log searchable; untuk privasi, hashed password tidak dicatat.
+		reason := classifyLoginFailure(input.Email, err, user)
+		slog.Warn("login_failed",
+			slog.String("email", strings.ToLower(strings.TrimSpace(input.Email))),
+			slog.String("reason", reason),
+		)
 		return nil, ErrInvalidCredentials
 	}
+	slog.Info("login_success",
+		slog.String("user_id", user.UserID),
+		slog.String("email", user.Email),
+		slog.String("role", user.Role),
+	)
 	return s.issueSession(user)
 }
 
@@ -122,27 +136,55 @@ func (s *AuthService) Register(name, email, password, phone string) (*AuthResult
 	if err := s.users.Create(user); err != nil {
 		return nil, err
 	}
+	slog.Info("register_success",
+		slog.String("user_id", user.UserID),
+		slog.String("email", user.Email),
+		slog.String("role", user.Role),
+	)
 	return s.issueSession(user)
 }
 
 func (s *AuthService) Refresh(rawToken string) (*AuthResult, error) {
 	if strings.TrimSpace(rawToken) == "" {
+		slog.Warn("refresh_failed", slog.String("reason", "empty_token"))
 		return nil, ErrInvalidToken
 	}
 	replacementRaw, replacement, err := s.newRefreshToken("")
 	if err != nil {
+		slog.Error("refresh_failed", slog.String("reason", "token_generation_error"), slog.String("error", err.Error()))
 		return nil, err
 	}
 	current, err := s.refresh.Rotate(hashRefreshToken(rawToken), replacement)
 	if err != nil {
+		slog.Warn("refresh_failed", slog.String("reason", "invalid_or_revoked_token"))
 		return nil, ErrInvalidToken
 	}
 	user, err := s.users.FindByUserID(current.UserID)
 	if err != nil || user.Status != "ACTIVE" {
 		_ = s.refresh.Revoke(replacement.TokenHash)
+		slog.Warn("refresh_failed",
+			slog.String("reason", "user_inactive_or_missing"),
+			slog.String("user_id", current.UserID),
+		)
 		return nil, ErrInvalidToken
 	}
+	slog.Info("refresh_success", slog.String("user_id", user.UserID))
 	return s.issueResult(user, replacementRaw)
+}
+
+// classifyLoginFailure menerjemahkan tiga kemungkinan penyebab 401 ke
+// label yang searchable di log: user_not_found, user_inactive, password_mismatch.
+// Dipakai oleh Login untuk memberi diagnosa tanpa membocorkan apakah
+// user ada di DB (password_mismatch dan user_not_found terlihat berbeda
+// untuk admin, tapi tujuannya untuk diagnosa operasional).
+func classifyLoginFailure(email string, findErr error, user *models.User) string {
+	if findErr != nil {
+		return "user_not_found"
+	}
+	if user != nil && user.Status != "ACTIVE" {
+		return "user_inactive"
+	}
+	return "password_mismatch"
 }
 
 func (s *AuthService) Logout(rawToken string) error {

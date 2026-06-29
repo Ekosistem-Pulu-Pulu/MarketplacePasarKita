@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -238,18 +239,41 @@ func (s *MarketplaceService) Checkout(userID string, input CheckoutInput, author
 
 	product, err := s.products.FindByProductID(input.ProductID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Warn("checkout_rejected",
+			slog.String("user_id", userID),
+			slog.String("product_id", input.ProductID),
+			slog.String("reason", "product_not_found"),
+		)
 		return nil, ErrNotFound
 	}
 	if err != nil {
+		slog.Error("checkout_error", slog.String("user_id", userID), slog.String("error", err.Error()))
 		return nil, err
 	}
 	if !product.StatusAktif {
+		slog.Warn("checkout_rejected",
+			slog.String("user_id", userID),
+			slog.String("product_id", input.ProductID),
+			slog.String("reason", "product_inactive"),
+		)
 		return nil, fmt.Errorf("%w: produk nonaktif", ErrBadRequest)
 	}
 	if product.Stok <= 0 {
+		slog.Warn("checkout_rejected",
+			slog.String("user_id", userID),
+			slog.String("product_id", input.ProductID),
+			slog.String("reason", "out_of_stock"),
+		)
 		return nil, fmt.Errorf("%w: stok produk habis", ErrBadRequest)
 	}
 	if input.Qty > product.Stok {
+		slog.Warn("checkout_rejected",
+			slog.String("user_id", userID),
+			slog.String("product_id", input.ProductID),
+			slog.Int("requested_qty", input.Qty),
+			slog.Int("available_stok", product.Stok),
+			slog.String("reason", "qty_exceeds_stock"),
+		)
 		return nil, fmt.Errorf("%w: qty melebihi stok tersedia", ErrBadRequest)
 	}
 
@@ -303,6 +327,12 @@ func (s *MarketplaceService) Checkout(userID string, input CheckoutInput, author
 	}
 
 	if err := s.orders.Create(order); err != nil {
+		slog.Error("checkout_error",
+			slog.String("user_id", input.UserID),
+			slog.String("order_id", orderID),
+			slog.String("phase", "orders_create"),
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -314,6 +344,16 @@ func (s *MarketplaceService) Checkout(userID string, input CheckoutInput, author
 		Message:    "order created without direct saldo mutation",
 	})
 
+	slog.Info("checkout_success",
+		slog.String("user_id", input.UserID),
+		slog.String("order_id", orderID),
+		slog.String("product_id", input.ProductID),
+		slog.Int("qty", input.Qty),
+		slog.Int64("subtotal", subtotal),
+		slog.Int64("marketplace_fee", fee),
+		slog.Int64("total", total),
+		slog.String("integration_status", payment.Status),
+	)
 	return order, nil
 }
 
@@ -324,15 +364,32 @@ func (s *MarketplaceService) IntegratePayment(userID string, input PaymentIntegr
 
 	order, err := s.orders.FindByOrderID(input.OrderID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		slog.Warn("payment_rejected",
+			slog.String("user_id", userID),
+			slog.String("order_id", input.OrderID),
+			slog.String("reason", "order_not_found"),
+		)
 		return nil, ErrNotFound
 	}
 	if err != nil {
+		slog.Error("payment_error", slog.String("user_id", userID), slog.String("error", err.Error()))
 		return nil, err
 	}
 	if order.UserID != userID {
+		slog.Warn("payment_rejected",
+			slog.String("user_id", userID),
+			slog.String("order_id", input.OrderID),
+			slog.String("order_owner", order.UserID),
+			slog.String("reason", "ownership_mismatch"),
+		)
 		return nil, fmt.Errorf("%w: order bukan milik user aktif", ErrForbidden)
 	}
 	if order.StatusOrder == models.StatusPaid || order.StatusOrder == models.StatusCompleted {
+		slog.Info("payment_idempotent_noop",
+			slog.String("user_id", userID),
+			slog.String("order_id", order.OrderID),
+			slog.String("status", order.StatusOrder),
+		)
 		return order, nil
 	}
 
@@ -351,12 +408,29 @@ func (s *MarketplaceService) IntegratePayment(userID string, input PaymentIntegr
 	order.GatewayFee = payment.GatewayFee
 	order.IntegrationStatus = payment.Status
 	if payment.Status == "PAYMENT_FAILED" {
+		slog.Warn("payment_failed",
+			slog.String("user_id", userID),
+			slog.String("order_id", order.OrderID),
+			slog.Int64("amount", order.TotalBayar),
+		)
 		order.StatusOrder = models.StatusPaymentFailed
 	} else {
+		slog.Info("payment_dispatched",
+			slog.String("user_id", userID),
+			slog.String("order_id", order.OrderID),
+			slog.String("integration_status", payment.Status),
+			slog.Int64("amount", order.TotalBayar),
+		)
 		order.StatusOrder = models.StatusPaymentProcess
 	}
 
 	if err := s.orders.Save(order); err != nil {
+		slog.Error("payment_error",
+			slog.String("user_id", userID),
+			slog.String("order_id", order.OrderID),
+			slog.String("phase", "orders_save"),
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
 	return order, nil
