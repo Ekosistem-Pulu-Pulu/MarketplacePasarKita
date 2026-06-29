@@ -22,8 +22,12 @@ export async function logout(refreshToken) {
 	});
 }
 
+// /auth/me mengembalikan klaim JWT terbaru (id/name/email/role) sehingga
+// konsisten dengan role yang ada di access token. Endpoint /account/me
+// juga ada di BE tapi dipakai untuk profil jual-beli dan tidak selalu
+// mengirim role untuk akun operasional.
 export async function getMe() {
-  return unwrapData(await apiRequest("/account/me"));
+  return unwrapData(await apiRequest("/auth/me"));
 }
 
 export async function updateMe(payload) {
