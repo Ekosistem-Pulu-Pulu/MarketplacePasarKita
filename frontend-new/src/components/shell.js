@@ -2,19 +2,21 @@ import { categories } from "../data/categories.js";
 import { getProductSnapshot } from "../services/productService.js";
 import { getCartCountSnapshot } from "../services/cartService.js";
 import { getUser, isLoggedIn, logout } from "../utils/storage.js";
+import { accountTypeLabel, dashboardHref, dashboardLabel, isAdmin, isSeller } from "../utils/roles.js";
 import { escapeHtml, toast } from "../utils/ui.js";
 
 export function header() {
   const user = isLoggedIn() ? getUser() : null;
-  const sellerHref = "#/seller";
-  const sellerLabel = user?.role === "seller" ? "Dashboard Seller" : "Ajukan Jadi Penjual";
+  const accountHref = dashboardHref(user);
+  const accountLabel = dashboardLabel(user);
+  // Akun operasional (admin) tidak perlu CTA pengajuan seller.
   const products = getProductSnapshot();
   const suggestions = products.slice(0, 5);
   return `
     <div class="announcement">
       <div class="container announcement-inner">
         <span><span data-lucide="sparkles"></span> Gratis ongkir untuk transaksi pertamamu</span>
-        <div><a href="${sellerHref}">${sellerLabel}</a><a href="#/orders">Lacak Pesanan</a><span>Bantuan</span></div>
+        <div><a href="${accountHref}">${accountLabel}</a><a href="#/orders">Lacak Pesanan</a><span>Bantuan</span></div>
       </div>
     </div>
     <header class="site-header">
@@ -45,7 +47,7 @@ export function header() {
             <div class="profile-menu" id="profile-menu">
               <a href="#/profile"><span data-lucide="user"></span>Profil Saya</a>
               <a href="#/orders"><span data-lucide="package"></span>Pesanan Saya</a>
-              <a href="#/seller"><span data-lucide="store"></span>${sellerLabel}</a>
+              <a href="${accountHref}"><span data-lucide="store"></span>${accountLabel}</a>
               <button id="logout-button"><span data-lucide="log-out"></span>Keluar</button>
             </div>
           ` : `<div class="auth-actions"><a class="btn btn-ghost" href="#/login">Masuk</a><a class="btn btn-primary" href="#/register">Daftar</a></div>`}
@@ -67,7 +69,7 @@ export function header() {
       </div>
       <div class="mobile-drawer-links">
         <a href="#/orders"><span data-lucide="receipt-text"></span>Pesanan Saya</a>
-        <a href="${sellerHref}"><span data-lucide="store"></span>${sellerLabel}</a>
+        <a href="${accountHref}"><span data-lucide="store"></span>${accountLabel}</a>
         <a href="${user ? "#/profile" : "#/login"}"><span data-lucide="user"></span>${user ? "Profil Saya" : "Masuk ke Akun"}</a>
       </div>
     </aside>

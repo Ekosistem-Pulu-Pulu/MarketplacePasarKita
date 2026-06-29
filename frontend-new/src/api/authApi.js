@@ -37,3 +37,11 @@ export async function getAddresses() {
 export async function saveAddress(payload) {
   return unwrapData(await apiRequest("/account/addresses", { method: "POST", body: payload }));
 }
+
+// === Admin endpoints ===
+// /auth/accounts hanya menerima RolePlatformAdmin (lihat routes.go). FE
+// memanggil ini dari adminDashboard untuk menampilkan daftar akun yang
+// terlihat oleh admin.
+export async function listAccounts() {
+  return unwrapData(await apiRequest("/auth/accounts"));
+}

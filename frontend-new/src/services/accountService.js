@@ -1,14 +1,16 @@
 import * as authApi from "../api/authApi.js";
 import { getUser, isApiSession, updateUser } from "../utils/storage.js";
+import { isBuyer } from "../utils/roles.js";
 
 export async function getProfile() {
   if (!isApiSession()) return getUser();
   try {
-    const [profile, addresses] = await Promise.all([authApi.getMe(), authApi.getAddresses()]);
-    return updateUser({ ...profile, addresses });
+    const profile = await authApi.getMe();
+    const addresses = isBuyer(profile?.role) ? await authApi.getAddresses() : (getUser()?.addresses || []);
+    return updateUser({ ...getUser(), ...profile, addresses });
   } catch (error) {
-    if (!error.isNetworkError) throw error;
-    return getUser();
+    if (error?.isNetworkError) return getUser();
+    throw error;
   }
 }
 

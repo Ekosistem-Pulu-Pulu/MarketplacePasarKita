@@ -149,7 +149,12 @@ async function renderGuestCheckout(items) {
             <label><span>Nama lengkap</span><input class="input input-bordered" name="nama_penerima" value="${escapeHtml(recipient.nama_penerima)}" required /><small class="form-error" data-error-for="nama_penerima"></small></label>
             <label><span>Email <small class="muted">(untuk bukti pesanan)</small></span><input class="input input-bordered" name="email" type="email" value="${escapeHtml(recipient.email)}" /><small class="form-error" data-error-for="email"></small></label>
             <label><span>Nomor HP</span><input class="input input-bordered" name="phone" value="${escapeHtml(recipient.phone)}" required /><small class="form-error" data-error-for="phone"></small></label>
-            <label><span>Negara</span><input class="input input-bordered" name="country" value="${escapeHtml(recipient.country)}" maxlength="3" /><small class="form-error" data-error-for="country"></small></label>
+            <label class="country-field"><span>Negara</span>
+              <select class="select select-bordered" name="country" id="guest-country" aria-label="Negara tujuan pengiriman">
+                <option value="ID" selected>Indonesia 🇮🇩</option>
+              </select>
+              <small class="form-error" data-error-for="country"></small>
+            </label>
           </div>
         </section>
         <section class="checkout-card">
@@ -166,7 +171,6 @@ async function renderGuestCheckout(items) {
         <section class="checkout-card">
           <div class="checkout-card-heading"><span data-lucide="truck"></span><div><h2>Pilih Pengiriman</h2><p>Tarif dihitung oleh LogistikKita otomatis berdasarkan alamat di atas.</p></div>${rateArchive(initialRates)}</div>
           <div class="choice-list" id="guest-shipping-options">${guestShippingOptions(initialRates.rates || [])}</div>
-          <small class="form-hint" id="guest-shipping-hint">${initialRates.rates?.length ? "" : "Lengkapi field lokasi di atas untuk memuat opsi ongkir."}</small>
         </section>
         ${checkoutProductsSection(items)}
         ${paymentSection(paymentOptions)}
@@ -213,7 +217,7 @@ function channelHint(channel) {
 
 function guestShippingOptions(rates) {
   if (!rates.length) {
-    return `<div class="empty-mini"><span data-lucide="hourglass"></span><p>Opsi ongkir akan tersedia setelah field lokasi diisi lengkap.</p></div>`;
+    return `<div class="empty-mini empty-mini-shipping" role="status"><div class="empty-mini-icon"><span data-lucide="package"></span></div><div class="empty-mini-body"><h3>Belum ada opsi pengiriman</h3><p>Lengkapi alamat penerima (Kota, Kecamatan, Kelurahan, dan Alamat Lengkap) untuk melihat pilihan pengiriman dari LogistikKita.</p></div></div>`;
   }
   return rates.map((rate, index) => `<label class="choice-card ${index === 0 ? "selected" : ""}"><input type="radio" name="shipping_rate" value="${rate.rate_id}" data-courier="${escapeHtml(rate.courier)}" data-service="${escapeHtml(rate.service)}" data-eta="${escapeHtml(rate.eta_days)}" ${index === 0 ? "checked" : ""} /><span data-lucide="truck"></span><div><strong>${escapeHtml(rate.label || (rate.courier + " " + rate.service))}</strong><small>${escapeHtml(rate.description || "")} &middot; Tiba ${escapeHtml(rate.eta_days)}</small></div><b>${formatCurrency(rate.price)}</b></label>`).join("");
 }
@@ -227,8 +231,12 @@ function guestRateStatusHint(rates) {
 }
 
 function rateArchive(initialRates) {
-  const count = initialRates?.rates?.length || 0;
-  return `<span class="badge badge-neutral badge-outline"><span data-lucide="package"></span>${count} opsi dari LogistikKita</span>`;
+  const rates = initialRates?.rates || [];
+  if (!rates.length) {
+    return `<span id="guest-rate-status" class="badge badge-soft badge-neutral"><span data-lucide="hourglass"></span>Menunggu alamat</span>`;
+  }
+  const label = `${rates.length} opsi pengiriman`;
+  return `<span id="guest-rate-status" class="badge badge-soft badge-success"><span data-lucide="package"></span>${label}</span>`;
 }
 
 function itemsToLogistikItems(items) {
@@ -347,6 +355,8 @@ function bindGuestSubmit({ navigate, refreshIcons }) {
     const key = [recipient.kota, recipient.kecamatan, recipient.kelurahan, recipient.alamat_lengkap, recipient.country].join("|");
     if (key === lastFetchKey) return;
     lastFetchKey = key;
+    showRatesLoading();
+    refreshIcons();
     try {
       const rateList = await getGuestShippingRates(recipient, itemsToLogistikItems(checkoutState.items));
       checkoutState.guestRecipient = recipient;
@@ -364,9 +374,7 @@ function bindGuestSubmit({ navigate, refreshIcons }) {
     const container = document.querySelector("#guest-shipping-options");
     if (!container) return;
     container.innerHTML = guestShippingOptions(rates);
-    const banner = document.querySelector("#guest-shipping-hint");
-    if (banner) banner.innerHTML = rates.length ? "" : "Belum ada opsi dari LogistikKita — coba alamat lain.";
-    refreshIcons();
+    updateRateBadge({ rates });
     if (rates.length) {
       checkoutState.selectedRateId = rates[0].rate_id;
       container.querySelectorAll(".choice-card").forEach((card, index) => card.addEventListener("click", () => {
@@ -381,8 +389,19 @@ function bindGuestSubmit({ navigate, refreshIcons }) {
     const container = document.querySelector("#guest-shipping-options");
     if (!container) return;
     container.innerHTML = guestShippingOptions([]);
-    const banner = document.querySelector("#guest-shipping-hint");
-    if (banner) banner.innerHTML = "Opsi ongkir akan tersedia setelah field lokasi diisi lengkap.";
+    updateRateBadge({ rates: [] });
+  }
+
+  function updateRateBadge(initialRates) {
+    const old = document.querySelector("#guest-rate-status");
+    if (old) old.outerHTML = rateArchive(initialRates);
+    refreshIcons();
+  }
+
+  function showRatesLoading() {
+    const container = document.querySelector("#guest-shipping-options");
+    if (!container) return;
+    container.innerHTML = `<div class="empty-mini empty-mini-shipping loading" role="status"><div class="empty-mini-icon"><svg class="spinner" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="42 18"></circle></svg></div><div class="empty-mini-body"><h3>Menghitung ongkir…</h3><p>Menghubungi LogistikKita untuk alamat yang baru diisi.</p></div></div>`;
   }
 
   function refreshGuestTotals() {

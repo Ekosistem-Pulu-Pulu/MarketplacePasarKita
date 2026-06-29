@@ -1,4 +1,5 @@
 import { getProductById } from "../data/products.js";
+import { ROLE } from "./roles.js";
 
 const KEYS = {
   user: "pasarkita_user",
@@ -81,14 +82,34 @@ export function persistAuthSession({ token, accessToken, refreshToken, expiresAt
 export function login(email) {
   const known = read(KEYS.users, []).find((user) => user.email === email);
   return write(KEYS.user, known || {
+    ...defaultOfflineUser(email),
+  });
+}
+
+// Heuristik ringan: akun dengan substring 'seller' diperlakukan seller,
+// akun dengan substring 'admin/catalog/support/finance/fulfillment/tech'
+// diperlakukan admin sesuai Prefixes; selain itu buyer. Output sudah
+// mengikuti ROLE di utils/roles.js sehingga UI konsisten walau sesi
+// fallback tidak punya backend.
+function defaultOfflineUser(email) {
+  const lower = String(email || "").toLowerCase();
+  const avatar = String(email || "PK").slice(0, 2).toUpperCase();
+  const base = {
     id: "user-local",
-    name: email.toLowerCase().includes("seller") ? "Nadia Seller" : "Raka Pratama",
     email,
     phone: "0812 3456 7890",
-    avatar: email.slice(0, 2).toUpperCase(),
-    role: email.toLowerCase().includes("seller") ? "seller" : "buyer",
     addresses: [defaultAddress],
-  });
+  };
+  if (lower.includes("seller")) {
+    return { ...base, name: "Nadia Seller", avatar, role: ROLE.SELLER };
+  }
+  if (lower.includes("admin")) return { ...base, name: "Platform Admin", avatar, role: ROLE.PLATFORM_ADMIN };
+  if (lower.includes("catalog")) return { ...base, name: "Catalog Admin", avatar, role: ROLE.CATALOG_ADMIN };
+  if (lower.includes("support")) return { ...base, name: "Customer Support", avatar, role: ROLE.CUSTOMER_SUPPORT };
+  if (lower.includes("finance")) return { ...base, name: "Finance Ops", avatar, role: ROLE.FINANCE_OPS };
+  if (lower.includes("fulfillment")) return { ...base, name: "Fulfillment Ops", avatar, role: ROLE.FULFILLMENT_OPS };
+  if (lower.includes("tech")) return { ...base, name: "Tech Maintainer", avatar, role: ROLE.TECH_MAINTAINER };
+  return { ...base, name: "Raka Pratama", avatar, role: ROLE.BUYER };
 }
 
 export function register(payload) {
@@ -98,7 +119,7 @@ export function register(payload) {
     email: payload.email,
     phone: payload.phone || "Belum diisi",
     avatar: payload.name.slice(0, 2).toUpperCase(),
-    role: payload.role || "buyer",
+    role: payload.role || ROLE.BUYER,
     addresses: [defaultAddress],
   };
   write(KEYS.users, [...read(KEYS.users, []), user]);

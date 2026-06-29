@@ -8,18 +8,41 @@ import {
   register as localRegister,
   updateUser,
 } from "../utils/storage.js";
+import { isBuyer } from "../utils/roles.js";
 import { syncGuestCart } from "./cartService.js";
+
+// Profile enrichment dipisah per request karena /account/addresses
+// di backend hanya menerima RoleBuyer. Jika akun login adalah admin,
+// pemanggilan addresses akan berakhir 403 lalu Promise.all reject
+// dan menggugurkan enrichment nama/role dari /account/me.
+async function enrichSession(baseUser) {
+  let profile = baseUser;
+  try {
+    profile = await authApi.getMe();
+  } catch (error) {
+    if (error?.isNetworkError) throw error;
+    // Endpoint me gagal tapi sesi sudah terbentuk — tetap lanjut dengan
+    // user dari response login. Error lain (401/403) diteruskan.
+    if (error?.status && error.status >= 500) throw error;
+  }
+  let addresses = [];
+  if (isBuyer(profile?.role)) {
+    try {
+      addresses = await authApi.getAddresses();
+    } catch (error) {
+      if (error?.isNetworkError) throw error;
+      // 403 untuk non-buyer sudah diakomodasi oleh guard isBuyer di atas;
+      // error lain diabaikan agar enrichment tidak menggugurkan login.
+    }
+  }
+  updateUser({ ...getUser(), ...profile, addresses });
+}
 
 export async function loginUser(payload) {
   try {
     const result = await authApi.login(payload.email, payload.password);
 		persistAuthSession(result);
-    try {
-      const [profile, addresses] = await Promise.all([authApi.getMe(), authApi.getAddresses()]);
-      updateUser({ ...profile, addresses });
-    } catch {
-      // The JWT payload is enough to establish the session if profile enrichment fails.
-    }
+    await enrichSession(result?.user || {});
     await syncGuestCart();
     return getUser();
   } catch (error) {

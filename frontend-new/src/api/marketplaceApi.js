@@ -166,3 +166,10 @@ export async function fetchGuestOrder(orderID, email) {
   if (!orderID || !email) throw new Error("Order ID dan email wajib diisi untuk melihat pesanan guest.");
   return unwrapData(await apiRequest(`/marketplace/guest/orders/${encodeURIComponent(orderID)}?email=${encodeURIComponent(email)}`));
 }
+
+// === Platform admin endpoints ===
+// /marketplace/logging menerima RolePlatformAdmin dan RoleTechMaintainer.
+// Dipakai untuk menampilkan log audit terkini di dashboard admin.
+export async function listAuditLogs() {
+  return unwrapData(await apiRequest("/marketplace/logging"));
+}

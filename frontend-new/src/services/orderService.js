@@ -3,12 +3,19 @@ import {
   createOrder as createLocalOrder,
   getOrder as getLocalOrder,
   getOrders as getLocalOrders,
+  getUser,
+  isApiSession,
   updateOrderStatus as updateLocalOrderStatus,
 } from "../utils/storage.js";
-import { isApiSession } from "../utils/storage.js";
+import { isBuyer } from "../utils/roles.js";
 
 export async function listOrders() {
   if (!isApiSession()) return getLocalOrders();
+  // Endpoint /marketplace/orders hanya untuk RoleBuyer. Untuk akun non-buyer
+  // (admin/seller/operasional) kembalikan list kosong agar caller
+  // (profile/orderStatus) tidak crash dan bisa render empty state.
+  const current = getUser();
+  if (current && !isBuyer(current?.role)) return [];
   try {
     return await fetchOrders() || [];
   } catch (error) {

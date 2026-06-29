@@ -290,4 +290,46 @@
   body[data-route="cart"] #cart-checkout,
   body[data-route="checkout"] .checkout-summary > .btn,
   body[data-route="payment"] #mark-paid { bottom: 70px; }
+
+/* ====================================================================
+   CHECKOUT - Mobile & Tablet refinements
+   - Layout collapses to single column
+   - Badge wraps below heading on small phones
+   - Form padding tightened
+   ==================================================================== */
+@media (max-width: 1023px) {
+  body[data-route="checkout"] .checkout-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    width: min(720px, calc(100% - 32px));
+  }
+  body[data-route="checkout"] .checkout-main { gap: 20px; }
+  body[data-route="checkout"] .checkout-card { padding: 22px; }
+}
+
+@media (max-width: 720px) {
+  body[data-route="checkout"] .page-heading.compact { margin-bottom: 24px; }
+  body[data-route="checkout"] .checkout-layout { width: calc(100% - 28px); }
+  body[data-route="checkout"] .checkout-main { gap: 18px; }
+  body[data-route="checkout"] .checkout-card { padding: 20px; }
+  body[data-route="checkout"] .checkout-card-heading { gap: 12px; margin-bottom: 22px; }
+  body[data-route="checkout"] .checkout-address-form { gap: 20px; grid-template-columns: 1fr; }
+  body[data-route="checkout"] .checkout-address-form .wide { grid-column: auto; }
+  body[data-route="checkout"] .empty-mini-shipping { padding: 18px 20px; gap: 14px; }
+}
+
+@media (max-width: 520px) {
+  body[data-route="checkout"] .checkout-card-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  body[data-route="checkout"] .checkout-card-heading > span {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+  }
+  body[data-route="checkout"] .checkout-card-heading > span svg { width: 20px; height: 20px; }
+  body[data-route="checkout"] .checkout-card-heading > .badge { align-self: flex-start; }
+  body[data-route="checkout"] .empty-mini-icon { width: 40px; height: 40px; border-radius: 12px; }
+}
 }

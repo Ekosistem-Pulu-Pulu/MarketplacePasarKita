@@ -15,8 +15,10 @@ import * as registerPage from "../pages/register.js";
 import * as forgotPasswordPage from "../pages/forgotPassword.js";
 import * as profile from "../pages/profile.js";
 import * as sellerDashboard from "../pages/sellerDashboard.js";
+import * as adminDashboard from "../pages/adminDashboard.js";
 import { addToCart, getCartCountSnapshot } from "../services/cartService.js";
 import { getUser, isLoggedIn, setPendingRoute } from "./storage.js";
+import { isAdmin, isSeller } from "./roles.js";
 import { animatePage, emptyState, skeleton, toast } from "./ui.js";
 
 const routes = [
@@ -35,6 +37,7 @@ const routes = [
   { pattern: /^\/forgot-password$/, page: forgotPasswordPage },
   { pattern: /^\/profile$/, page: profile, auth: true },
   { pattern: /^\/seller$/, page: sellerDashboard, auth: true },
+  { pattern: /^\/admin$/, page: adminDashboard, auth: true, requireAdmin: true },
 ];
 
 let viewRoot;
@@ -68,8 +71,19 @@ export async function renderRoute() {
     navigate("/login");
     return;
   }
+  // Guard khusus untuk route admin: tolak buyer/seller yang mencoba akses.
+  // Akun operasional hanya boleh masuk lewat /admin; akun non-admin otomatis
+  // dialihkan ke dashboard masing-masing dengan notifikasi singkat.
+  if (route.requireAdmin) {
+    const current = getUser();
+    if (!isAdmin(current?.role)) {
+      toast("Halaman ini khusus akun operasional PasarKita.", "error");
+      navigate(isSeller(current?.role) ? "/seller" : "/orders");
+      return;
+    }
+  }
 
-  const isImmersive = ["/login", "/register", "/forgot-password", "/seller"].includes(route.path);
+  const isImmersive = ["/login", "/register", "/forgot-password", "/seller", "/admin"].includes(route.path);
   headerRoot.innerHTML = isImmersive ? "" : Navbar();
   footerRoot.innerHTML = isImmersive ? "" : Footer();
   viewRoot.innerHTML = `<section class="container route-loading"><span class="spinner"></span><p>Menyiapkan pengalaman belanjamu...</p>${skeleton(4)}</section>`;
