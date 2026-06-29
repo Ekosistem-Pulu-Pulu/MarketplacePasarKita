@@ -1,5 +1,6 @@
-import { apiRequest, unwrapData, API_BASE_URL } from "./client.js";
+import { apiRequest, unwrapData } from "./client.js";
 import { getToken } from "../utils/storage.js";
+import { API_BASE_URL } from "../config/apiConfig.js";
 
 export async function browseProducts(params = {}) {
   const query = new URLSearchParams({
